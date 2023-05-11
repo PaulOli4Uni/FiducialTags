@@ -45,8 +45,6 @@ ap.add_argument("-t", "--type", type=str,
                 help="type of ArUCo tag to generate")
 args = vars(ap.parse_args())
 
-
-
 # verify that the supplied ArUCo tag exists and is supported by OpenCV
 if ARUCO_DICT.get(args["type"], None) is None:
     print("[INFO] ArUCo tag of '{}' is not supported".format(
