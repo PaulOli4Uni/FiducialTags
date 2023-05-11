@@ -1,0 +1,417 @@
+<?xml version="1.0" ?>
+<!--
+  Gazebo joint position controller plugin demo
+
+  Try sending joint position commands:
+
+    gz topic -t "/rotor_cmd<x>" -m gz.msgs.Double -p "data: -1.0"
+
+    gz topic -t "/rotor_cmd<x>" -m gz.msgs.Double -p "data: 1.0"
+-->
+<sdf version="1.6">
+  <world name="default">
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+
+    <gravity>0 0 0</gravity>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>1 1 1 1</diffuse>
+      <specular>0.5 0.5 0.5 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+    
+    <model name="joint_position_controller_demo">
+      <pose>0 0 0 0 0 0</pose>
+      
+      <link name="base_link">
+        <pose>0.0 0.0 0.0 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>88.5</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>8416</iyy>
+            <iyz>0</iyz>
+            <izz>8333</izz>
+          </inertia>
+          <mass>1000.0</mass>
+        </inertial>
+        <visual name="base_visual">
+          <pose>0.0 0.0 0.0 0 0 0</pose>
+          <geometry>
+            <box>
+              <size>1 10 0.2</size>
+            </box>
+          </geometry>
+        </visual>
+      </link>
+      
+      <link name="liny_link">
+        <pose>0.0 0.0 4 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>535</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>535</iyy>
+            <iyz>0</iyz>
+            <izz>4.2</izz>
+          </inertia>
+          <mass>100</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.5 0.5 8</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.8 0.2 1</ambient>
+          </material>
+        </visual>
+      </link>
+
+      <link name="linz_link">
+        <pose>5.25 0 1 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>0.032</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.032</iyy>
+            <iyz>0</iyz>
+            <izz>0.00012</izz>
+          </inertia>
+          <mass>50</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>10 0.5 0.5</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.8 0.2 1</ambient>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="linx_link">
+        <pose>5 0 0.65 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>0.032</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.032</iyy>
+            <iyz>0</iyz>
+            <izz>0.00012</izz>
+          </inertia>
+          <mass>10</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.5 0.5 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.8 0.2 1</ambient>
+          </material>
+        </visual>
+      </link>
+
+	
+     <link name="roty_link">
+        <pose> 5 0 0.45 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>2</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>2</iyy>
+            <iyz>0</iyz>
+            <izz>2</izz>
+          </inertia>
+          <mass>5.0</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.25</radius>
+              <length>0.2</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 1 0 1</ambient>
+            <diffuse>0 1 0 1</diffuse>
+            <specular>0 1 0 1</specular>
+          </material>
+        </visual>
+      </link>
+
+	
+	<link name="midrot_link">
+        <pose>4.8875 0 0.25 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>0.032</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.032</iyy>
+            <iyz>0</iyz>
+            <izz>0.00012</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 0.2 0.2</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.8 0.2 1</ambient>
+          </material>
+        </visual>
+      </link>
+      
+      <link name="rotr_link">
+        <pose>5 0.15 0.2 0 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>0.032</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.032</iyy>
+            <iyz>0</iyz>
+            <izz>0.00012</izz>
+          </inertia>
+          <mass>1</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 0.5 0.1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.8 0.2 1</ambient>
+          </material>
+        </visual>
+      </link>
+       
+      <link name="camera_link">
+        <pose> 5 0.425 0.2 1.57 0 0</pose>
+        <inertial>
+          <inertia>
+            <ixx>2</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>2</iyy>
+            <iyz>0</iyz>
+            <izz>2</izz>
+          </inertia>
+          <mass>5.0</mass>
+        </inertial>
+        <visual name="visual">
+          <geometry>
+            <cylinder>
+              <radius>0.05</radius>
+              <length>0.05</length>
+            </cylinder>
+          </geometry>
+          <material>
+            <ambient>0 1 0 1</ambient>
+            <diffuse>0 1 0 1</diffuse>
+            <specular>0 1 0 1</specular>
+          </material>
+        </visual>
+      </link>
+
+
+      <joint name="world_fixed" type="fixed">
+        <parent>world</parent>
+        <child>base_link</child>
+      </joint>
+
+      <joint name="liny_joint" type="prismatic">
+        <pose>0 0 0 0 0 0</pose>
+        <parent>base_link</parent>
+        <child>liny_link</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <dynamics>
+            <damping>0</damping>
+          </dynamics>
+        </axis>
+      </joint>
+      
+      <joint name="linz_joint" type="prismatic">
+        <pose>0 0 0 0 0 0</pose>
+        <parent>liny_link</parent>
+        <child>linz_link</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <dynamics>
+            <damping>0</damping>
+          </dynamics>
+        </axis>
+      </joint>
+      
+      <joint name="linx_joint" type="prismatic">
+        <pose>0 0 0 0 0 0</pose>
+        <parent>linz_link</parent>
+        <child>linx_link</child>
+        <axis>
+          <xyz>1 0 0</xyz>
+          <dynamics>
+            <damping>0</damping>
+          </dynamics>
+        </axis>
+      </joint>
+      
+      <joint name="roty_joint" type="revolute">
+        <pose>0 0 0 0 0 0</pose>
+        <parent>linx_link</parent>
+        <child>roty_link</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <dynamics>
+            <damping>0</damping>
+          </dynamics>
+        </axis>
+      </joint>
+      
+      <joint name="mid_rot_joint" type="fixed">
+        <parent>roty_joint</parent>
+        <child>midrot_link</child>
+      </joint>
+      
+      <joint name="rotr_joint" type="revolute">
+        <pose>0 -0.15 0 0 0 0</pose>
+        <parent>midrot_link</parent>
+        <child>rotr_link</child>
+        <axis>
+          <xyz>1 0 0</xyz>
+          <dynamics>
+            <damping>0</damping>
+          </dynamics>
+        </axis>
+      </joint>
+      
+      <joint name="rotp_joint" type="revolute">
+        <pose>0 0 0 0 0 0</pose>
+        <parent>rotr_link</parent>
+        <child>camera_link</child>
+        <axis>
+          <xyz>0 0 1</xyz>
+          <dynamics>
+            <damping>0</damping>
+          </dynamics>
+        </axis>
+      </joint>
+      
+      <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>liny_joint</joint_name>
+        <topic>liny</topic>
+        <p_gain>160</p_gain>
+        <i_gain>20</i_gain>
+        <d_gain>1000</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>1000</cmd_max>
+        <cmd_min>-1000</cmd_min>
+      </plugin>
+    
+      <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>linz_joint</joint_name>
+        <topic>linz</topic>
+        <p_gain>160</p_gain>
+        <i_gain>20</i_gain>
+        <d_gain>1000</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>1000</cmd_max>
+        <cmd_min>-1000</cmd_min>
+      </plugin>
+    
+    <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>linx_joint</joint_name>
+        <topic>linx</topic>
+        <p_gain>160</p_gain>
+        <i_gain>20</i_gain>
+        <d_gain>1000</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>1000</cmd_max>
+        <cmd_min>-1000</cmd_min>
+      </plugin>
+    
+        <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>roty_joint</joint_name>
+        <topic>roty</topic>
+        <p_gain>160</p_gain>
+        <i_gain>20</i_gain>
+        <d_gain>1000</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>1000</cmd_max>
+        <cmd_min>-1000</cmd_min>
+      </plugin>
+    
+    <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>rotr_joint</joint_name>
+        <topic>rotr</topic>
+        <p_gain>160</p_gain>
+        <i_gain>20</i_gain>
+        <d_gain>1000</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>1000</cmd_max>
+        <cmd_min>-1000</cmd_min>
+      </plugin>
+      
+      <plugin
+        filename="gz-sim-joint-position-controller-system"
+        name="gz::sim::systems::JointPositionController">
+        <joint_name>rotp_joint</joint_name>
+        <topic>rotp</topic>
+        <p_gain>160</p_gain>
+        <i_gain>20</i_gain>
+        <d_gain>1000</d_gain>
+        <i_max>1</i_max>
+        <i_min>-1</i_min>
+        <cmd_max>1000</cmd_max>
+        <cmd_min>-1000</cmd_min>
+      </plugin>
+      
+    
+    </model>
+  </world>
+</sdf>
