@@ -68,7 +68,9 @@ if ARUCO_DICT.get(args["type"], None) is None:
     sys.exit(0)
 
 # Todo: check that number of tags to generate is <= dictionary max (and > 0)
-#if args["num"] >>
+if args["num"] <= 0:
+	print("[INFO] Number of tags to generate must be larger than 0")
+	sys.exit(0)
 
 
 MYDIR = args["output"]
