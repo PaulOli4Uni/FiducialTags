@@ -1,5 +1,7 @@
 
 """
+Code Base: https://pyimagesearch.com/2020/12/14/generating-aruco-markers-with-opencv-and-python/
+
 File creates an Individual Aruco Marker
 Properties:
 -t --type: Type of Marker to generate (see dictionary below for marker types) NxN_M
@@ -12,6 +14,9 @@ Properties:
 
 Example of terminal message to generate the first marker type (Marker ID of 1). Marker will not be displayed
 python3 Individual_Marker_Generator.py -o "MarkerName.png" -i 0 -t "DICT_4X4_50" -s 200 -v 'False'
+
+Following website can also be used:
+https://chev.me/arucogen/
 """
 
 import numpy as np

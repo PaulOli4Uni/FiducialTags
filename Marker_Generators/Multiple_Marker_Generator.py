@@ -1,4 +1,6 @@
 """
+Code Base: https://pyimagesearch.com/2020/12/14/generating-aruco-markers-with-opencv-and-python/
+
 File creates a SET of Aruco Markers
 Properties:
 -t --type: Type of Marker to generate (see dictionary below for marker types) NxN_M
@@ -17,8 +19,6 @@ import argparse
 import cv2
 import sys
 import os
-from pathlib import Path
-from distutils.util import strtobool
 
 ARUCO_DICT = {
 	"DICT_4X4_50": cv2.aruco.DICT_4X4_50,
