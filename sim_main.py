@@ -112,6 +112,7 @@ def ImportSheet(tests_config, filename):
         cameras = []
 
 
+
         models = []
         if not ImportModels(models, sheet, model_row_index, light_row_index):
             return False
