@@ -5,7 +5,7 @@ Code Sources:
 
 File creates a SET of Aruco Markers
 Properties:
--f --function: Task to be completed by program. Can be: CreatePng, CreateObj, PngToObj")
+-f --function: Task to be completed by program. Can be: CreatePng, CreateObj, PngToObj)
 -o --output_dir: path to file where tags/images should be stored (for Obj make it the model directory)
 -n --num: Number of ArUCo tags to generate, ranges from 0 -> M-1
 -id --id: ID of ArUCo tag to generate (number of tags = 1)
@@ -39,7 +39,8 @@ output_dir: (model directory provided by user)
 
 
 Example of terminal message to generate a set of the first marker type
-python3 Marker_Generator.py -o "FileLocation" -n 10 -t "DICT_4X4_50" -s 200
+python3 Marker_Generator.py -f "CreateObj"  -o "FileLocation" -n 10 -t "DICT_4X4_50" -s 1000
+python3 Marker_Generator.py -f "CreateObj"  -o "/home/stb21753492/FiducialTags/Markers" -n 10 -t "DICT_4X4_50" -s 1000
 """
 
 import numpy as np
@@ -78,55 +79,6 @@ Function_DICT = {
     "PngToObj": 3
 }
 
-# Strings containing file information. Obj file requires info in header
-str_obj_file_end = """
-vn 0 -1 0.5 
-vn 0 1 0.5
-vn -1 0 0.5
-vn 1 0 0
-vn 0 0 1
-vn 0 0 -1
-vt 0 0
-vt 1 0
-vt 0 1
-vt 1 1
-
-usemtl CubeOther
-f 1/1/1 2/2/1 6/4/1
-f 1/1/1 6/4/1 5/3/1
-usemtl CubeOther
-f 3/1/2 4/2/2 8/4/2
-f 3/1/2 8/4/2 7/3/2
-usemtl CubeOther
-f 4/1/3 1/2/3 5/4/3
-f 4/1/3 5/4/3 8/3/3
-usemtl CubeOther
-f 2/1/4 3/2/4 7/4/4
-f 2/1/4 7/4/4 6/3/4
-usemtl CubeTop
-f 5/1/5 6/2/5 7/4/5
-f 5/1/5 7/4/5 8/3/5
-usemtl CubeOther
-f 4/1/6 3/2/6 2/4/6
-f 4/1/6 2/4/6 1/3/6"""
-str_mtl_file_start = """
-newmtl CubeTop
-Kd 1 1 1
-Ns 96.0784
-d 1
-illum 1
-Ka 0 0 0
-Ks 1 1 1
-map_Kd """
-str_mtl_file_end = """
-newmtl CubeOther
-Kd 1 1 1
-Ns 96.0784
-d 1
-illum 1
-Ka 0 0 0
-Ks 1 1 1
-map_Kd white.png"""
 white_img_tag = 255 * np.ones((100, 100, 1), dtype="uint8")
 
 
@@ -229,7 +181,7 @@ def CreateObj(marker_type, num, marker_id, size, output_dir):
     os.makedirs(png_files_dir)
     CreatePng(marker_type, num, marker_id, size, png_files_dir)
     # Size given in mm -> need to convert to m
-    s = CreateObjFileVerteces(size / 1000)
+    vertexes_str = CreateObjFileVerteces(size / 1000)
 
     for i in range(num):
         if num == 1:  # If only 1 marker, generate specific id (loop wil only run once)
@@ -249,16 +201,98 @@ def CreateObj(marker_type, num, marker_id, size, output_dir):
 
         # --Create .obj and .mtl files
         # -Create .obj file
-        # Add string parts of obj file together
-        obj_file_string = "mtllib " + filename + ".mtl" + "\no Mesh \n" + s + str_obj_file_end
         f = open(os.path.join(marker_model_dir, filename + ".obj"), "w")
-        f.write(obj_file_string)
+        f.write(CreateObjFileString(filename, vertexes_str))
         f.close()
         # -Create .mtl file
         f = open(os.path.join(marker_model_dir, filename + ".mtl"), "w")
-        mtl_file_string = str_mtl_file_start + filename + ".png \n" + str_mtl_file_end
-        f.write(mtl_file_string)
+        f.write(CreateMtlString(filename))
         f.close()
+        # -Create .sdf file
+        f = open(os.path.join(marker_model_dir, filename + ".sdf"), "w")
+        f.write(CreateSDFFileString(filename))
+        f.close()
+
+
+def CreateObjFileString(filename, vertexes_str):
+    # Strings containing file information. Obj file requires info in header
+    obj_file_str = f"""mtllib {filename}.mtl
+o Mesh 
+{vertexes_str}
+vn 0 -1 0.5 
+vn 0 1 0.5
+vn -1 0 0.5
+vn 1 0 0
+vn 0 0 1
+vn 0 0 -1
+vt 0 0
+vt 1 0
+vt 0 1
+vt 1 1
+
+usemtl CubeOther
+f 1/1/1 2/2/1 6/4/1
+f 1/1/1 6/4/1 5/3/1
+usemtl CubeOther
+f 3/1/2 4/2/2 8/4/2
+f 3/1/2 8/4/2 7/3/2
+usemtl CubeOther
+f 4/1/3 1/2/3 5/4/3
+f 4/1/3 5/4/3 8/3/3
+usemtl CubeOther
+f 2/1/4 3/2/4 7/4/4
+f 2/1/4 7/4/4 6/3/4
+usemtl CubeTop
+f 5/1/5 6/2/5 7/4/5
+f 5/1/5 7/4/5 8/3/5
+usemtl CubeOther
+f 4/1/6 3/2/6 2/4/6
+f 4/1/6 2/4/6 1/3/6"""
+    return obj_file_str
+
+def CreateMtlString(filename):
+
+    mtl_file_str = f"""newmtl CubeTop
+Kd 1 1 1
+Ns 96.0784
+d 1
+illum 1
+Ka 0 0 0
+Ks 1 1 1
+map_Kd {filename}.png
+
+newmtl CubeOther
+Kd 1 1 1
+Ns 96.0784
+d 1
+illum 1
+Ka 0 0 0
+Ks 1 1 1
+map_Kd white.png"""
+    return mtl_file_str
+
+def CreateSDFFileString(filename):
+    sdf_file_str = f"""<?xml version="1.0" ?>
+        <sdf version="1.5">
+        <model name="{filename}">
+              <link name="Main">
+                <pose>0 0 0 0 0 0</pose>
+                    <visual name="{filename}_Visual">
+                        <pose>0 0 0 0 0 0</pose>
+                        <geometry>
+                            <mesh>
+                                <scale>1 1 1</scale>
+                                <uri>{filename}.obj</uri>
+                            </mesh>
+                        </geometry>
+                    </visual>
+                    <gravity>1</gravity>
+                    <velocity_decay/>
+                    <self_collide>0</self_collide>
+              </link>
+          </model></sdf>"""
+
+    return sdf_file_str
 
 
 def PngToObj():
@@ -298,3 +332,4 @@ if __name__ == '__main__':
             CreateObj(args["type"], args["num"], args["id"], args["size"], args["output_dir"])
         case 3:
             print("[INFO] Function \'PngToObj\' selected")
+            PngToObj()
