@@ -9,6 +9,7 @@ import numpy as np
 from dataclasses import dataclass
 import subprocess
 import os
+from scipy.spatial.transform import Rotation
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
 parameters_config = {"movement_path", "video_name", "gz_pose_file", "vid_pose_file", "cameras", "models", "lights"}
@@ -282,13 +283,56 @@ def StartGazebo(main_config):
 
 def RunSim(main_config, tests_config):
 
+    # Load Markers/Load Cameras (same function?)
+    LoadMarker(main_config.world_file[:-4], main_config.test_files_path, tests_config[0].models[0])
+    LoadMarker(main_config.world_file[:-4], main_config.test_files_path, tests_config[0].models[1])
+    # Prep Movement File (if time of first line = 0) set seperate and create temp file for other commands
+        # Move Camera to correct position (if needed ^- see above)
+        # Play Pause
+
+    # Loads movement file
+    # Start Camera Record
+    # Play
+    # Func fin -> Pause Sim
 
     return True
+
+def LoadMarker(world_name, path, model_dc):
+    # filename[:-4]
+    marker_name_no_extension = model_dc.model_name[:-4]
+    marker_name_no_id = marker_name_no_extension.rsplit('_', 1)[0]
+    path_to_marker_full = os.path.join(path, "Markers", marker_name_no_id, marker_name_no_extension, model_dc.model_name)
+
+    LoadModel(world_name, path_to_marker_full, marker_name_no_extension, model_dc.pose)
+
+def LoadModel(world_name, path_to_model_inc_extension, model_name_no_extension, model_pose):
+
+    rot = Rotation.from_euler('xyz', [90, 45, 30], degrees=True)
+    rot_quart = rot.as_quat()
+    print(rot_quart)
+
+    spawn_cmd = f"gz service -s /world/{world_name}/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean " \
+                f"--timeout 1000 --req \'sdf_filename: \"{path_to_model_inc_extension}\", " \
+                f"name: \"{model_name_no_extension}\", pose: {{position: {{x:{model_pose.X},y:{model_pose.Y},z:{model_pose.Z}}}, orientation: {{x:{rot_quart[0]},y:{rot_quart[1]},z:{rot_quart[2]},w:{rot_quart[3]}}}}}\'"
+
+    ## Command Works
+    # gz service -s /world/standard_world/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Simulations/Markers/DICT_4X4_50_s500/DICT_4X4_50_s500_id1/DICT_4X4_50_s500_id1.sdf", name: "DICT_4X4_50_s500_id77", pose: {position: {x:1,y:1,z:2}, orientation: {x:0.5609,y:0.4305,z:-0.0923,w:0.70105}}'
+
+    print(spawn_cmd)
+
+    result = subprocess.run(spawn_cmd, shell=True, capture_output=True, text=True)
+    # subprocess.run(spawn_cmd)
+
+"""
+Spawning a Model
+        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Markers/DICT_4X4_50_s1000/DICT_4X4_50_s1000_id1/DICT_4X4_50_s1000_id1.sdf", name: "urd22f_model"'
+Spawming a Camera
+        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Cameras/Cam_Basic.sdf", name: "Cam"'"""
 
 
 # ------------ MAIN ------------
 if __name__ == '__main__':
-
+    print(os.path.dirname(os.path.abspath(__file__)))
     # Setup and import data
     filename = 'Test.xlsx'
     if not CheckCorrectExtention(filename, ".xlsx"):
@@ -302,7 +346,7 @@ if __name__ == '__main__':
         sys.exit()
 
     print("[INFO] Starting Simulations")
-    StartGazebo(main_config)  # Comment this line out if GZ already running
+    # StartGazebo(main_config)  # Comment this line out if GZ already running
     RunSim(main_config, tests_config)
     """
         Spawning a Model
