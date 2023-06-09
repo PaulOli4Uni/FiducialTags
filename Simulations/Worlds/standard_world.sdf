@@ -1,0 +1,213 @@
+<?xml version="1.0" ?>
+<!--
+  Demo world with widgets displaying images coming from a bounding box camera sensor.
+-->
+<sdf version="1.6">
+  <world name="boundingbox_sensor">
+    <gravity>0 0 0</gravity>
+    <plugin
+      filename="gz-sim-physics-system"
+      name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin
+      filename="gz-sim-user-commands-system"
+      name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin
+      filename="gz-sim-scene-broadcaster-system"
+      name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+    <plugin
+      filename="gz-sim-sensors-system"
+      name="gz::sim::systems::Sensors">
+      <render_engine>ogre2</render_engine>
+    </plugin>
+
+    <gui fullscreen="0">
+
+      
+
+    </gui>
+
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.8 0.8 0.8 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <model name="box1">
+      <pose>0 -1 0.5 0 0 0</pose>
+      <link name="box1_link">
+        <inertial>
+          <inertia>
+            <ixx>1</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1</iyy>
+            <iyz>0</iyz>
+            <izz>1</izz>
+          </inertia>
+          <mass>1.0</mass>
+        </inertial>
+        <collision name="box_collision">
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+        </collision>
+
+        <visual name="box_visual">
+          <geometry>
+            <box>
+              <size>1 1 1</size>
+            </box>
+          </geometry>
+          <material>
+            <ambient>0 0 0.5 1</ambient>
+            <diffuse>0 0 1 1</diffuse>
+            <specular>0 0 0.3 1</specular>
+          </material>
+          <plugin filename="gz-sim-label-system" name="gz::sim::systems::Label">
+            <label>10</label>
+          </plugin>
+        </visual>
+      </link>
+    </model>
+
+  <model name="camera">
+      <pose>4 0 1.0 0 0.0 3.14</pose>
+      <link name="link">
+        <pose>0.05 0.05 0.05 0 0 0</pose>
+        <inertial>
+          <mass>1</mass>
+          <inertia>
+            <ixx>1</ixx>
+            <iyy>1</iyy>
+            <izz>1</izz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box>
+              <size>0.1 0.1 0.1</size>
+            </box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box>
+              <size>0.1 0.1 0.1</size>
+            </box>
+          </geometry>
+        </visual>
+
+        <sensor name="camera1" type="camera">
+          <topic>boxes_full_2d</topic>
+          <camera>
+            <box_type>full_2d</box_type>
+            <horizontal_fov>1.047</horizontal_fov>
+            <image>
+              <width>800</width>
+              <height>600</height>
+            </image>
+            <clip>
+              <near>0.1</near>
+              <far>10</far>
+            </clip>
+            <save enabled="true">
+              <path>bounding_box_full_2d_data</path>
+            </save>
+             <noise>
+              <type>gaussian</type>
+              <mean>0.00</mean>
+              <stddev>0.0</stddev>
+            </noise>
+            <distortion>
+              <k1>1</k1>
+              <k2>10</k2>
+              <k3>5</k3>
+              <p1>10</p1>
+              <p2>10</p2>
+              <center>0.5 0.5</center>
+            </distortion>
+            <lens>
+              <type>stereographic</type>
+              <scale_to_hfov>true</scale_to_hfov>
+              <cutoff_angle>1.5707963267948966</cutoff_angle>
+              <env_texture_size>256</env_texture_size>
+            </lens>
+          </camera>
+          <always_on>1</always_on>
+          <update_rate>30</update_rate>
+          <visualize>true</visualize>
+
+          <plugin
+            filename="gz-sim-camera-video-recorder-system"
+            name="gz::sim::systems::CameraVideoRecorder">
+            <service>boxes_full_2d</service>
+            <use_sim_time>true</use_sim_time>
+            <fps>24</fps>
+          </plugin>
+
+        </sensor>
+
+      </link>
+
+      <plugin
+        filename="Position_Control"
+        name="gz::sim::v7::systems::PositionController">
+        <timestep_precision>10</timestep_precision>
+        <pose_topic>box</pose_topic>
+        <file_topic>file</file_topic>
+        <xyz_offset> 0 0 0</xyz_offset>
+        <rpy_offset> 0 0 0</rpy_offset>
+      </plugin>
+
+      <plugin
+        filename="Pose_To_File"
+        name="gz::sim::v7::systems::PoseToFile">
+        <service>pose_to_file</service>
+      </plugin>
+      
+
+    </model>
+        
+  </world>
+</sdf>
+
