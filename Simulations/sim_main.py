@@ -14,10 +14,10 @@ import os
 from scipy.spatial.transform import Rotation
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
-parameters_config = {"movement_path", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
+parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
 parameters_main = {"test_files_path", "world_file"}
 
-
+tmp_movement_file_dir = 'tmp_files/tmp_file.txt'
 # ------------ DATA CLASSES ------------
 @dataclass()
 class dc_pose:
@@ -50,7 +50,7 @@ class dc_test_main_data:
 @dataclass()
 class dc_test_config_data:
     test_name: str
-    movement_path: str
+    movement_file: str
     video_file: str
     gz_pose_file: str
     vid_pose_file: str
@@ -119,10 +119,10 @@ def ImportSheet(tests_main, tests_config, filename):
 
         sheet.set_index("Parameter", inplace=True)
 
-        movement_path = sheet.loc["movement_path"]['Info']
-        if not CheckStrValueGiven(movement_path, "movement_path"): return False
-        if not CheckCorrectExtention(movement_path, ".txt"): return False
-        if not CheckFileExists(os.path.join(tests_main.test_files_path, "Movement_Files", movement_path)): return False
+        movement_file = sheet.loc["movement_file"]['Info']
+        if not CheckStrValueGiven(movement_file, "movement_file"): return False
+        if not CheckCorrectExtention(movement_file, ".txt"): return False
+        if not CheckFileExists(os.path.join(tests_main.test_files_path, "Movement_Files", movement_file)): return False
 
         video_file = sheet.loc["video_file"]['Info']
         if not CheckStrValueGiven(video_file, "video_file"): return False
@@ -152,7 +152,7 @@ def ImportSheet(tests_main, tests_config, filename):
         lights = []
         if not ImportLights(lights, tests_main.test_files_path, sheet, light_row_index, max_row): return False
 
-        test_data = dc_test_config_data(test_name, movement_path, video_file, gz_pose_file, vid_pose_file, cameras,
+        test_data = dc_test_config_data(test_name, movement_file, video_file, gz_pose_file, vid_pose_file, cameras,
                                         markers, lights)
         tests_config.append(test_data)
     return True
@@ -186,8 +186,8 @@ def CheckAllRequiredParametersConfigPresent(sheet):
     return True
 
 
-def CheckStrValueGiven(cell_value,
-                       parameter_name):  # Returns true if filename and extension matches (thus correct extension given)
+def CheckStrValueGiven(cell_value, parameter_name):
+    # Returns true if filename and extension matches (thus correct extension given)
     if type(cell_value) != str:
         print("[ERR] Non String data type given for parameter: " + parameter_name)
         return False
@@ -294,27 +294,42 @@ def RunSim(main_config, tests_config):
 
     i = 0 # <- For every world
 
-    # Load Markers & Cameras
+    test_config = tests_config[i]
     world_name = main_config.world_file[:-4]
 
-    for marker in tests_config[i].markers:
+    # Load Markers & Cameras
+    print("[INFO] Spawning Markers and Cameras")
+    for marker in test_config.markers:
         LoadMarker(world_name, main_config.test_files_path, marker)
 
-    for camera in tests_config[i].cameras:
+    for camera in test_config.cameras:
         LoadCamera(world_name, main_config.test_files_path, camera)
 
-    # Prep Movement File (if time of first line = 0) set seperate and create temp file for other commands
+    # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
+    pose_message = LoadPoseMovementFile(main_config.test_files_path, test_config.movement_file)
+    if pose_message:
+        print("[INFO] Moving camera to starting position")
+        RunPoseString(test_config.cameras[0].camera_file[:-4], pose_message)
+        print(pose_message)
+        PlaySim(world_name)
+        time.sleep(3) # todo: wait until movement complete msg
+        PauseSim(world_name)
         # Move Camera to correct position (if needed ^- see above)
         # Play Pause
+
+    print("[INFO] Running movement_file")
+    RunPoseFile(test_config.cameras[0].camera_file[:-4], os.path.join(main_config.test_files_path ,tmp_movement_file_dir))
     PlaySim(world_name)
 
     # Loads movement file
     # Start Camera Record
     # Play
     # Func fin -> Pause Sim
-    time.sleep(2) # todo: remove line
+    time.sleep(18) # todo: wait until movement complete msg
     PauseSim(world_name)
+
     # Remove Markers and Cameras
+    print("[INFO] Removing Markers and Cameras")
     for marker in tests_config[i].markers:
         RemoveModel(world_name, marker.marker_file[:-4])
     for camera in tests_config[i].cameras:
@@ -338,34 +353,92 @@ def LoadModel(world_name, path_to_model_inc_extension, model_name, model_pose):
     rot = Rotation.from_euler('xyz', [model_pose.r, model_pose.p, model_pose.y], degrees=False)
     rot_quart = rot.as_quat()
 
-    # Working spawn command
-    # gz service -s /world/standard_world/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Simulations/Markers/DICT_4X4_50_s500/DICT_4X4_50_s500_id1/DICT_4X4_50_s500_id1.sdf", name: "DICT_4X4_50_s500_id77", pose: {position: {x:1,y:1,z:2}, orientation: {x:0.5609,y:0.4305,z:-0.0923,w:0.70105}}'
-
     spawn_cmd = f"gz service -s /world/{world_name}/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean " \
                 f"--timeout 1000 --req \'sdf_filename: \"{path_to_model_inc_extension}\", " \
                 f"name: \"{model_name}\", pose: {{position: {{x:{model_pose.X},y:{model_pose.Y},z:{model_pose.Z}}}, " \
                 f"orientation: {{x:{rot_quart[0]},y:{rot_quart[1]},z:{rot_quart[2]},w:{rot_quart[3]}}}}}\'"
 
     result = subprocess.run(spawn_cmd, shell=True, capture_output=True, text=True)
-    print(result)
-    # subprocess.run(spawn_cmd)
+    # print(result)
 
 def RemoveModel(world_name, model_name):
 
     remove_cmd = f"gz service -s /world/{world_name}/remove --reqtype gz.msgs.Entity --reptype gz.msgs.Boolean " \
                  f"--timeout 1000 --req 'name: \"{model_name}\", type: 2'"
     result = subprocess.run(remove_cmd, shell=True, capture_output=True, text=True)
-    print(result)
+    # print(result)
 
 def PlaySim(world_name):
     play_cmd = f"gz service -s /world/{world_name}/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 1000 --req 'pause: false'"
     result = subprocess.run(play_cmd, shell=True, capture_output=True, text=True)
-    print(result)
+    # print(result)
 
 def PauseSim(world_name):
     pause_cmd = f"gz service -s /world/{world_name}/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 1000 --req 'pause: true'"
     result = subprocess.run(pause_cmd, shell=True, capture_output=True, text=True)
-    print(result)
+    # print(result)
+
+def LoadPoseMovementFile(main_path, movement_file):
+    """
+    Prepares the Pose Movement File and create tmp file which should be called
+    Temporary filename will be 'tmp_movement.txt'
+    Checks if the first movement command has a time of zero (starting position) and removes this when creating tmp file
+
+
+    Parameters
+    ----------
+    main_path
+    movement_file
+
+    Returns
+    -------
+    False -> if First line's last number is NOT a zero. Tmp file can be used directly
+    String Pose Line - > if first line's last number IS a zero. The pose line returned has to be run first before
+    running the tmp file. (To ensure camera is at correct starting position)
+    """
+    file_path = os.path.join(main_path, "Movement_Files", movement_file)
+    with open(file_path, 'r') as file:
+        lines = file.readlines()
+
+    first_line = lines[0].rstrip()
+    last_number = float(first_line.split(',')[-1])
+
+    if last_number == 0.0:
+        print(os.path.dirname(os.path.abspath(__file__)))
+        tmp_filename = tmp_movement_file_dir
+        tmp_lines = lines[1:]
+
+        with open(tmp_filename, 'w') as tmp_file:
+            tmp_file.writelines(tmp_lines)
+
+        print(f"First line stored: {first_line}")
+        print(f"Temporary file '{tmp_filename}' created.")
+
+        # Change time of last line to 1 second before returning pose command
+        initial_pose_cmd = first_line.split(',')
+        last_number_index = len(initial_pose_cmd) - 1
+        initial_pose_cmd[last_number_index] = '1'
+
+        initial_pose_cmd = ','.join(initial_pose_cmd)
+        return initial_pose_cmd
+    else:
+        tmp_filename = 'tmp_file.txt'
+        with open(tmp_filename, 'w') as tmp_file:
+            tmp_file.writelines(lines)
+
+        print(f"Temporary file '{tmp_filename}' created.")
+        return False
+
+def RunPoseString(model_name, pose_msg):
+
+    pose_cmd = f"gz topic -t /model/{model_name}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
+    print(pose_cmd)
+    result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
+
+def RunPoseFile(model_name, pose_file):
+    pose_cmd = f"gz topic -t /model/{model_name}/file_pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_file}\"\'"
+    print(pose_cmd)
+    result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
 
 # ------------ MAIN ------------
 if __name__ == '__main__':
