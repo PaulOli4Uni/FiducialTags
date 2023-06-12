@@ -306,12 +306,14 @@ def RunSim(main_config, tests_config):
     # Prep Movement File (if time of first line = 0) set seperate and create temp file for other commands
         # Move Camera to correct position (if needed ^- see above)
         # Play Pause
+    PlaySim(world_name)
 
     # Loads movement file
     # Start Camera Record
     # Play
     # Func fin -> Pause Sim
     time.sleep(2) # todo: remove line
+    PauseSim(world_name)
     # Remove Markers and Cameras
     for marker in tests_config[i].markers:
         RemoveModel(world_name, marker.marker_file[:-4])
@@ -355,12 +357,23 @@ def RemoveModel(world_name, model_name):
     result = subprocess.run(remove_cmd, shell=True, capture_output=True, text=True)
     print(result)
 
+def PlaySim(world_name):
+    play_cmd = f"gz service -s /world/{world_name}/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 1000 --req 'pause: false'"
+    result = subprocess.run(play_cmd, shell=True, capture_output=True, text=True)
+    print(result)
+
+def PauseSim(world_name):
+    pause_cmd = f"gz service -s /world/{world_name}/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 1000 --req 'pause: true'"
+    result = subprocess.run(pause_cmd, shell=True, capture_output=True, text=True)
+    print(result)
 
 # ------------ MAIN ------------
 if __name__ == '__main__':
+
+    test_path = os.path.dirname(os.path.abspath(__file__))
     print(os.path.dirname(os.path.abspath(__file__)))
     # Setup and import data
-    filename = 'Test.xlsx'
+    filename = test_path + "/Test.xlsx"
     if not CheckCorrectExtention(filename, ".xlsx"):
         print("[ERR] Incorrect file extension given for .xlsx")
         sys.exit()
@@ -374,10 +387,4 @@ if __name__ == '__main__':
     print("[INFO] Starting Simulations")
     # StartGazebo(main_config)  # Comment this line out if GZ already running
     RunSim(main_config, tests_config)
-    """
-        Spawning a marker
-        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Markers/DICT_4X4_50_s1000/DICT_4X4_50_s1000_id1/DICT_4X4_50_s1000_id1.sdf", name: "urd22f_marker"'
-        Spawming a Camera
-        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Cameras/Cam_Basic.sdf", name: "Cam"'
 
-        """
