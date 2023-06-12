@@ -12,6 +12,7 @@ from dataclasses import dataclass
 import subprocess
 import os
 from scipy.spatial.transform import Rotation
+import shutil
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
 parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
@@ -296,7 +297,15 @@ def RunSim(main_config, tests_config):
 
     test_config = tests_config[i]
     world_name = main_config.world_file[:-4]
-
+    test_dir = os.path.join(main_config.test_files_path, "Tests", test_config.test_name)
+    print("[INFO] Making directory for test results at: \'" + test_dir + "\'")
+    # os.makedirs(test_dir)
+    if not os.path.exists(test_dir): # Create the directory
+        os.makedirs(test_dir)
+    else:  # Clear the directory of its contents
+        # os.remove(test_dir)
+        shutil.rmtree(test_dir)
+        os.makedirs(test_dir)
     # Load Markers & Cameras
     print("[INFO] Spawning Markers and Cameras")
     for marker in test_config.markers:
@@ -308,9 +317,10 @@ def RunSim(main_config, tests_config):
     # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
     pose_message = LoadPoseMovementFile(main_config.test_files_path, test_config.movement_file)
     if pose_message:
-        print("[INFO] Moving camera to starting position")
-        RunPoseString(test_config.cameras[0].camera_file[:-4], pose_message)
-        print(pose_message)
+        print("[INFO] Moving camera(s) to starting position")
+        for camera in test_config.cameras:
+            RunPoseString(camera.camera_file[:-4], pose_message)
+
         PlaySim(world_name)
         time.sleep(3) # todo: wait until movement complete msg
         PauseSim(world_name)
@@ -318,7 +328,12 @@ def RunSim(main_config, tests_config):
         # Play Pause
 
     print("[INFO] Running movement_file")
-    RunPoseFile(test_config.cameras[0].camera_file[:-4], os.path.join(main_config.test_files_path ,tmp_movement_file_dir))
+    for camera in test_config.cameras:
+        camera_name = camera.camera_file[:-4]
+        gz_pose_file_name = f"gz_pose_{camera_name}.txt"
+        StartCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file_name))
+        RunPoseFile(camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
+
     PlaySim(world_name)
 
     # Loads movement file
@@ -327,14 +342,22 @@ def RunSim(main_config, tests_config):
     # Func fin -> Pause Sim
     time.sleep(18) # todo: wait until movement complete msg
     PauseSim(world_name)
+    print("[INFO] Movement_file finished")
 
     # Remove Markers and Cameras
     print("[INFO] Removing Markers and Cameras")
     for marker in tests_config[i].markers:
         RemoveModel(world_name, marker.marker_file[:-4])
     for camera in tests_config[i].cameras:
-        RemoveModel(world_name, camera.camera_file[:-4])
+        camera_name = camera.camera_file[:-4]
+        gz_pose_file_name = f"gz_pose_{camera_name}.txt"
+        StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file_name))
+        RemoveModel(world_name, camera_name)
+    # Remove tmp_movement_file
+    os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))
+
     return True
+
 
 def LoadMarker(world_name, main_path, marker_dc):
 
@@ -404,15 +427,14 @@ def LoadPoseMovementFile(main_path, movement_file):
     last_number = float(first_line.split(',')[-1])
 
     if last_number == 0.0:
-        print(os.path.dirname(os.path.abspath(__file__)))
         tmp_filename = tmp_movement_file_dir
         tmp_lines = lines[1:]
 
         with open(tmp_filename, 'w') as tmp_file:
             tmp_file.writelines(tmp_lines)
 
-        print(f"First line stored: {first_line}")
-        print(f"Temporary file '{tmp_filename}' created.")
+        # print(f"First line stored: {first_line}")
+        # print(f"Temporary file '{tmp_filename}' created.")
 
         # Change time of last line to 1 second before returning pose command
         initial_pose_cmd = first_line.split(',')
@@ -426,25 +448,37 @@ def LoadPoseMovementFile(main_path, movement_file):
         with open(tmp_filename, 'w') as tmp_file:
             tmp_file.writelines(lines)
 
-        print(f"Temporary file '{tmp_filename}' created.")
+        # print(f"Temporary file '{tmp_filename}' created.")
         return False
 
 def RunPoseString(model_name, pose_msg):
 
     pose_cmd = f"gz topic -t /model/{model_name}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
-    print(pose_cmd)
     result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
 
 def RunPoseFile(model_name, pose_file):
+
     pose_cmd = f"gz topic -t /model/{model_name}/file_pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_file}\"\'"
-    print(pose_cmd)
     result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
+
+def StartCameraPoseCapture(model_name, gz_pose_file):
+
+    pose_storage_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
+                       f"--reptype gz.msgs.Int32 --req \'start:true, stop:false, save_filename:\"{gz_pose_file}\"\'"
+    print(pose_storage_cmd)
+    result = subprocess.run(pose_storage_cmd, shell=True, capture_output=True, text=True)
+    # gz service -s /pose_to_file --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Int32 --req 'start:true, save_filename:"name.txt"'
+
+def StopCameraPoseCapture(model_name, gz_pose_file):
+
+    pose_storage_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
+                       f"--reptype gz.msgs.Int32 --req \'start:false, stop:true, save_filename:\"{gz_pose_file}\"\'"
+    result = subprocess.run(pose_storage_cmd, shell=True, capture_output=True, text=True)
 
 # ------------ MAIN ------------
 if __name__ == '__main__':
 
     test_path = os.path.dirname(os.path.abspath(__file__))
-    print(os.path.dirname(os.path.abspath(__file__)))
     # Setup and import data
     filename = test_path + "/Test.xlsx"
     if not CheckCorrectExtention(filename, ".xlsx"):

@@ -1,7 +1,7 @@
 <?xml version="1.0" ?>
     <sdf version="1.5">
         <model name="camera">
-            <pose>4 0 1.0 0 0.0 3.14</pose>
+            <pose>0 0 0 0 0 0</pose>
             <link name="link">
                 <pose>0 0 0 0 0 0</pose>
                 <inertial>
@@ -90,7 +90,6 @@
             <plugin
                 filename="Pose_To_File"
                 name="gz::sim::v7::systems::PoseToFile">
-                <service>pose_to_file</service>
             </plugin>
         </model>
     </sdf>
