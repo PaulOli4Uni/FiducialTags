@@ -297,11 +297,11 @@ def RunSim(main_config, tests_config):
     # Load Markers & Cameras
     world_name = main_config.world_file[:-4]
 
-    for markers in tests_config[i].markers:
-        LoadMarker(world_name, main_config.test_files_path, markers)
+    for marker in tests_config[i].markers:
+        LoadMarker(world_name, main_config.test_files_path, marker)
 
-    for cameras in tests_config[i].cameras:
-        LoadCamera(world_name, main_config.test_files_path, cameras)
+    for camera in tests_config[i].cameras:
+        LoadCamera(world_name, main_config.test_files_path, camera)
 
     # Prep Movement File (if time of first line = 0) set seperate and create temp file for other commands
         # Move Camera to correct position (if needed ^- see above)
@@ -311,7 +311,12 @@ def RunSim(main_config, tests_config):
     # Start Camera Record
     # Play
     # Func fin -> Pause Sim
-
+    time.sleep(2) # todo: remove line
+    # Remove Markers and Cameras
+    for marker in tests_config[i].markers:
+        RemoveModel(world_name, marker.marker_file[:-4])
+    for camera in tests_config[i].cameras:
+        RemoveModel(world_name, camera.camera_file[:-4])
     return True
 
 def LoadMarker(world_name, main_path, marker_dc):
@@ -342,6 +347,13 @@ def LoadModel(world_name, path_to_model_inc_extension, model_name, model_pose):
     result = subprocess.run(spawn_cmd, shell=True, capture_output=True, text=True)
     print(result)
     # subprocess.run(spawn_cmd)
+
+def RemoveModel(world_name, model_name):
+
+    remove_cmd = f"gz service -s /world/{world_name}/remove --reqtype gz.msgs.Entity --reptype gz.msgs.Boolean " \
+                 f"--timeout 1000 --req 'name: \"{model_name}\", type: 2'"
+    result = subprocess.run(remove_cmd, shell=True, capture_output=True, text=True)
+    print(result)
 
 
 # ------------ MAIN ------------
