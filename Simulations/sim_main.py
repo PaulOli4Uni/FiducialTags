@@ -1,5 +1,7 @@
 """
-
+Standard used in this library.
+xx_file -> refers to the variable file. Thus -> Extension is included
+xx_name -> Refers to the name of the file (variable). Thus -> NO Extension in the name
 
 """
 import sys
@@ -12,7 +14,7 @@ import os
 from scipy.spatial.transform import Rotation
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
-parameters_config = {"movement_path", "video_name", "gz_pose_file", "vid_pose_file", "cameras", "models", "lights"}
+parameters_config = {"movement_path", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
 parameters_main = {"test_files_path", "world_file"}
 
 
@@ -28,15 +30,15 @@ class dc_pose:
 
 
 @dataclass()
-class dc_model:
-    model_name: str
+class dc_marker:
+    marker_file: str
     pose: dc_pose
 
 
 @dataclass()
 class dc_camera:
-    camera_name: str
-    camera_pose: dc_pose
+    camera_file: str
+    pose: dc_pose
 
 
 @dataclass()
@@ -49,11 +51,11 @@ class dc_test_main_data:
 class dc_test_config_data:
     test_name: str
     movement_path: str
-    video_name: str
+    video_file: str
     gz_pose_file: str
     vid_pose_file: str
     cameras: [dc_camera]
-    models: [dc_model]
+    markers: [dc_marker]
     lights: []  # todo: Add lights data class
 
 
@@ -85,18 +87,18 @@ def ImportSheet(tests_main, tests_config, filename):
         if not CheckAllRequiredParametersMainPresent(sheet): return False
 
         sheet.set_index("Parameter", inplace=True)
-        file_path = sheet.loc["test_files_path"]['Info']
-        if not CheckStrValueGiven(file_path, "video_name"): return False
-        if not os.path.exists(file_path):  # Ensure the path exists
+        main_file_path = sheet.loc["test_files_path"]['Info']
+        if not CheckStrValueGiven(main_file_path, "video_file"): return False
+        if not os.path.exists(main_file_path):  # Ensure the path exists
             print("[ERR] Path provided does not exist")
             return False
 
         world_file = sheet.loc["world_file"]['Info']
         if not CheckStrValueGiven(world_file, "world_file"): return False
         if not CheckCorrectExtention(world_file, ".sdf"): return False
-        if not CheckFileExists(os.path.join(file_path, "Worlds"), world_file): return False
+        if not CheckFileExists(os.path.join(main_file_path, "Worlds", world_file)): return False
 
-        tests_main.test_files_path = file_path
+        tests_main.test_files_path = main_file_path
         tests_main.world_file = world_file
 
     # Read rest of Sheet data into dataclasses
@@ -111,7 +113,7 @@ def ImportSheet(tests_main, tests_config, filename):
         test_name = sheet_names[i]
 
         camera_row_index = sheet[sheet["Parameter"] == "cameras"].index[0]
-        model_row_index = sheet[sheet["Parameter"] == "models"].index[0]
+        marker_row_index = sheet[sheet["Parameter"] == "markers"].index[0]
         light_row_index = sheet[sheet["Parameter"] == "lights"].index[0]
         max_row = len(sheet)
 
@@ -120,11 +122,11 @@ def ImportSheet(tests_main, tests_config, filename):
         movement_path = sheet.loc["movement_path"]['Info']
         if not CheckStrValueGiven(movement_path, "movement_path"): return False
         if not CheckCorrectExtention(movement_path, ".txt"): return False
-        if not CheckFileExists(os.path.join(tests_main.test_files_path, "Movement_Files"), movement_path): return False
+        if not CheckFileExists(os.path.join(tests_main.test_files_path, "Movement_Files", movement_path)): return False
 
-        video_name = sheet.loc["video_name"]['Info']
-        if not CheckStrValueGiven(video_name, "video_name"): return False
-        if not CheckCorrectExtention(video_name, ".mp4"): return False
+        video_file = sheet.loc["video_file"]['Info']
+        if not CheckStrValueGiven(video_file, "video_file"): return False
+        if not CheckCorrectExtention(video_file, ".mp4"): return False
 
         gz_pose_file = sheet.loc["gz_pose_file"]['Info']
         if not CheckStrValueGiven(gz_pose_file, "gz_pose_file"): return False
@@ -140,18 +142,18 @@ def ImportSheet(tests_main, tests_config, filename):
             vid_pose_file = np.nan
             print("[INFO] Video to pose file not provided")
 
-        # Import Cameras, Models and lights
+        # Import Cameras, markers and lights
         cameras = []
-        if not ImportCameras(cameras, sheet, camera_row_index, model_row_index): return False
+        if not ImportCameras(cameras, tests_main.test_files_path, sheet, camera_row_index, marker_row_index): return False
 
-        models = []
-        if not ImportModels(models, sheet, model_row_index, light_row_index): return False
+        markers = []
+        if not ImportMarkers(markers, tests_main.test_files_path, sheet, marker_row_index, light_row_index): return False
 
         lights = []
-        if not ImportLights(lights, sheet, light_row_index, max_row): return False
+        if not ImportLights(lights, tests_main.test_files_path, sheet, light_row_index, max_row): return False
 
-        test_data = dc_test_config_data(test_name, movement_path, video_name, gz_pose_file, vid_pose_file, cameras,
-                                        models, lights)
+        test_data = dc_test_config_data(test_name, movement_path, video_file, gz_pose_file, vid_pose_file, cameras,
+                                        markers, lights)
         tests_config.append(test_data)
     return True
 
@@ -193,29 +195,30 @@ def CheckStrValueGiven(cell_value,
         return True
 
 
-def CheckCorrectExtention(filename, extension_type):
-    if filename.lower().endswith(extension_type):
+def CheckCorrectExtention(file, extension_type):
+    if file.lower().endswith(extension_type):
         return True
     else:
-        print("[ERR] Incorrect extension for file: \'" + filename + "\'. Must be of type: \'" + extension_type + "\'")
+        print("[ERR] Incorrect extension for file: \'" + file + "\'. Must be of type: \'" + extension_type + "\'")
         return False
 
 
-def CheckFileExists(path_to_file, filename):
-    if os.path.exists(os.path.join(path_to_file, filename)):
+def CheckFileExists(file):
+    if os.path.exists(file):
         return True
     else:
-        print(f"[ERR] {filename} does not exist")
+        print(f"[ERR] {file} does not exist")
         return False
 
 
-def ImportCameras(cameras, sheet, start_index, end_index):
+def ImportCameras(cameras, main_files_path, sheet, start_index, end_index):
     for i in range(start_index, end_index):
         sheet_row = sheet.iloc[i]
 
-        camera_name = sheet_row["Info"]
-        if not CheckCorrectExtention(camera_name, ".sdf"):
+        camera_file = sheet_row["Info"]
+        if not CheckCorrectExtention(camera_file, ".sdf"):
             return False
+        if not CheckFileExists(os.path.join(main_files_path, "Cameras", camera_file)): return False
 
         camera_pose = sheet_row["Additional_Info"]
         pose = dc_pose(0, 0, 0, 0, 0, 0)
@@ -223,43 +226,49 @@ def ImportCameras(cameras, sheet, start_index, end_index):
             pose_list = [float(x) for x in camera_pose.split(',')]
             if len(pose_list) != 6:
                 print(
-                    "[WARN]: Incorrect number of pose variables provided for: \'" + camera_name + "\'. Pose set as [0,0,0,0,0,0]")
+                    "[WARN]: Incorrect number of pose variables provided for: \'" + camera_file + "\'. Pose set as [0,0,0,0,0,0]")
             else:
                 pose = dc_pose(pose_list[0], pose_list[1], pose_list[2], pose_list[3], pose_list[4], pose_list[5])
 
-        model = dc_model(camera_name, pose)
-        cameras.append(model)
+        camera = dc_camera(camera_file, pose)
+        cameras.append(camera)
     return True
 
 
-def ImportModels(models, sheet, start_index, end_index):
+def ImportMarkers(markers, main_files_path, sheet, start_index, end_index):
     for i in range(start_index, end_index):
         sheet_row = sheet.iloc[i]
 
-        model_name = sheet_row["Info"]
-        if not CheckCorrectExtention(model_name, ".sdf"):
-            print("[ERR]: Incorrect Model Extension found for: \'" + model_name + "\'")
+        marker_file = sheet_row["Info"]
+        if not CheckCorrectExtention(marker_file, ".sdf"):
+            print("[ERR]: Incorrect marker Extension found for: \'" + marker_file + "\'")
             return False
+        if not CheckFileExists(FilePathToMarker(main_files_path, marker_file)): return False
 
-        model_pose = sheet_row["Additional_Info"]
+        marker_pose = sheet_row["Additional_Info"]
         pose = dc_pose(0, 0, 0, 0, 0, 0)
-        if type(model_pose) == str:  # Type is a string and pose has been provided
-            pose_list = [float(x) for x in model_pose.split(',')]
+        if type(marker_pose) == str:  # Type is a string and pose has been provided
+            pose_list = [float(x) for x in marker_pose.split(',')]
             if len(pose_list) != 6:
                 print(
-                    "[WARN]: Incorrect number of pose variables provided for: \'" + model_name + "\'. Pose set as [0,0,0,0,0,0]")
+                    "[WARN]: Incorrect number of pose variables provided for: \'" + marker_file + "\'. Pose set as [0,0,0,0,0,0]")
             else:
                 pose = dc_pose(pose_list[0], pose_list[1], pose_list[2], pose_list[3], pose_list[4], pose_list[5])
 
-        model = dc_model(model_name, pose)
-        models.append(model)
+        marker = dc_marker(marker_file, pose)
+        markers.append(marker)
 
     return True
 
 
-def ImportLights(lights, sheet, start_index, end_index):
+def ImportLights(lights, main_files_path, sheet, start_index, end_index):
     return True
 
+def FilePathToMarker(main_files_path, marker_file):
+    marker_name = marker_file[:-4]  # Drops extension from string
+    marker_name_no_id = marker_name.rsplit('_', 1)[0]  # Removes _idXX portion of name
+    path_to_marker_file = os.path.join(main_files_path, "Markers", marker_name_no_id, marker_name, marker_file)
+    return path_to_marker_file
 
 # ------------ SIMULATION ------------
 def StartGazebo(main_config):
@@ -283,9 +292,17 @@ def StartGazebo(main_config):
 
 def RunSim(main_config, tests_config):
 
-    # Load Markers/Load Cameras (same function?)
-    LoadMarker(main_config.world_file[:-4], main_config.test_files_path, tests_config[0].models[0])
-    LoadMarker(main_config.world_file[:-4], main_config.test_files_path, tests_config[0].models[1])
+    i = 0 # <- For every world
+
+    # Load Markers & Cameras
+    world_name = main_config.world_file[:-4]
+
+    for markers in tests_config[i].markers:
+        LoadMarker(world_name, main_config.test_files_path, markers)
+
+    for cameras in tests_config[i].cameras:
+        LoadCamera(world_name, main_config.test_files_path, cameras)
+
     # Prep Movement File (if time of first line = 0) set seperate and create temp file for other commands
         # Move Camera to correct position (if needed ^- see above)
         # Play Pause
@@ -297,37 +314,34 @@ def RunSim(main_config, tests_config):
 
     return True
 
-def LoadMarker(world_name, path, model_dc):
-    # filename[:-4]
-    marker_name_no_extension = model_dc.model_name[:-4]
-    marker_name_no_id = marker_name_no_extension.rsplit('_', 1)[0]
-    path_to_marker_full = os.path.join(path, "Markers", marker_name_no_id, marker_name_no_extension, model_dc.model_name)
+def LoadMarker(world_name, main_path, marker_dc):
 
-    LoadModel(world_name, path_to_marker_full, marker_name_no_extension, model_dc.pose)
+    path_to_marker_file = FilePathToMarker(main_path, marker_dc.marker_file)
+    LoadModel(world_name, path_to_marker_file, marker_dc.marker_file[:-4], marker_dc.pose)
 
-def LoadModel(world_name, path_to_model_inc_extension, model_name_no_extension, model_pose):
+def LoadCamera(world_name, main_path, camera_dc):
 
-    rot = Rotation.from_euler('xyz', [90, 45, 30], degrees=True)
+    camera_name = camera_dc.camera_file[:-4]
+    path_to_camera_file = os.path.join(main_path, "Cameras", camera_dc.camera_file)
+
+    LoadModel(world_name, path_to_camera_file, camera_name, camera_dc.pose)
+
+def LoadModel(world_name, path_to_model_inc_extension, model_name, model_pose):
+
+    rot = Rotation.from_euler('xyz', [model_pose.r, model_pose.p, model_pose.y], degrees=False)
     rot_quart = rot.as_quat()
-    print(rot_quart)
+
+    # Working spawn command
+    # gz service -s /world/standard_world/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Simulations/Markers/DICT_4X4_50_s500/DICT_4X4_50_s500_id1/DICT_4X4_50_s500_id1.sdf", name: "DICT_4X4_50_s500_id77", pose: {position: {x:1,y:1,z:2}, orientation: {x:0.5609,y:0.4305,z:-0.0923,w:0.70105}}'
 
     spawn_cmd = f"gz service -s /world/{world_name}/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean " \
                 f"--timeout 1000 --req \'sdf_filename: \"{path_to_model_inc_extension}\", " \
-                f"name: \"{model_name_no_extension}\", pose: {{position: {{x:{model_pose.X},y:{model_pose.Y},z:{model_pose.Z}}}, orientation: {{x:{rot_quart[0]},y:{rot_quart[1]},z:{rot_quart[2]},w:{rot_quart[3]}}}}}\'"
-
-    ## Command Works
-    # gz service -s /world/standard_world/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Simulations/Markers/DICT_4X4_50_s500/DICT_4X4_50_s500_id1/DICT_4X4_50_s500_id1.sdf", name: "DICT_4X4_50_s500_id77", pose: {position: {x:1,y:1,z:2}, orientation: {x:0.5609,y:0.4305,z:-0.0923,w:0.70105}}'
-
-    print(spawn_cmd)
+                f"name: \"{model_name}\", pose: {{position: {{x:{model_pose.X},y:{model_pose.Y},z:{model_pose.Z}}}, " \
+                f"orientation: {{x:{rot_quart[0]},y:{rot_quart[1]},z:{rot_quart[2]},w:{rot_quart[3]}}}}}\'"
 
     result = subprocess.run(spawn_cmd, shell=True, capture_output=True, text=True)
+    print(result)
     # subprocess.run(spawn_cmd)
-
-"""
-Spawning a Model
-        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Markers/DICT_4X4_50_s1000/DICT_4X4_50_s1000_id1/DICT_4X4_50_s1000_id1.sdf", name: "urd22f_model"'
-Spawming a Camera
-        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Cameras/Cam_Basic.sdf", name: "Cam"'"""
 
 
 # ------------ MAIN ------------
@@ -349,8 +363,8 @@ if __name__ == '__main__':
     # StartGazebo(main_config)  # Comment this line out if GZ already running
     RunSim(main_config, tests_config)
     """
-        Spawning a Model
-        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Markers/DICT_4X4_50_s1000/DICT_4X4_50_s1000_id1/DICT_4X4_50_s1000_id1.sdf", name: "urd22f_model"'
+        Spawning a marker
+        gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Markers/DICT_4X4_50_s1000/DICT_4X4_50_s1000_id1/DICT_4X4_50_s1000_id1.sdf", name: "urd22f_marker"'
         Spawming a Camera
         gz service -s /world/empty/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Cameras/Cam_Basic.sdf", name: "Cam"'
 
