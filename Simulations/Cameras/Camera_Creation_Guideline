@@ -1,0 +1,23 @@
+3 Plugins must be present:
+	Within sensor Scope
+	NBNBNBNBN: service name MUST MATCH model name
+	    <plugin
+                filename="gz-sim-camera-video-recorder-system"
+                name="gz::sim::systems::CameraVideoRecorder">
+                <service><MODELNAME></service>
+                <use_sim_time>true</use_sim_time>
+                <fps>24</fps>
+            </plugin>
+	Within Model scope
+            <plugin
+                filename="Position_Control"
+                name="gz::sim::v7::systems::PositionController">
+                <timestep_precision>10</timestep_precision>
+                <xyz_offset> 0 0 0</xyz_offset>
+                <rpy_offset> 0 0 0</rpy_offset>
+            </plugin>
+
+            <plugin
+                filename="Pose_To_File"
+                name="gz::sim::v7::systems::PoseToFile">
+            </plugin>

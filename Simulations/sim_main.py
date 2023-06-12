@@ -330,8 +330,10 @@ def RunSim(main_config, tests_config):
     print("[INFO] Running movement_file")
     for camera in test_config.cameras:
         camera_name = camera.camera_file[:-4]
-        gz_pose_file_name = f"gz_pose_{camera_name}.txt"
-        StartCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file_name))
+        gz_pose_file = f"gz_pose_{camera_name}.txt"
+        video_file = f"vid_{camera_name}.mp4"
+        StartCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
+        StartCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
         RunPoseFile(camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
 
     PlaySim(world_name)
@@ -340,7 +342,7 @@ def RunSim(main_config, tests_config):
     # Start Camera Record
     # Play
     # Func fin -> Pause Sim
-    time.sleep(18) # todo: wait until movement complete msg
+    time.sleep(180) # todo: wait until movement complete msg
     PauseSim(world_name)
     print("[INFO] Movement_file finished")
 
@@ -350,8 +352,10 @@ def RunSim(main_config, tests_config):
         RemoveModel(world_name, marker.marker_file[:-4])
     for camera in tests_config[i].cameras:
         camera_name = camera.camera_file[:-4]
-        gz_pose_file_name = f"gz_pose_{camera_name}.txt"
-        StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file_name))
+        gz_pose_file = f"gz_pose_{camera_name}.txt"
+        video_file = f"vid_{camera_name}.mp4"
+        StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
+        StopCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
         RemoveModel(world_name, camera_name)
     # Remove tmp_movement_file
     os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))
@@ -463,17 +467,30 @@ def RunPoseFile(model_name, pose_file):
 
 def StartCameraPoseCapture(model_name, gz_pose_file):
 
-    pose_storage_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
+    pose_storage_start_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
                        f"--reptype gz.msgs.Int32 --req \'start:true, stop:false, save_filename:\"{gz_pose_file}\"\'"
-    print(pose_storage_cmd)
-    result = subprocess.run(pose_storage_cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(pose_storage_start_cmd, shell=True, capture_output=True, text=True)
     # gz service -s /pose_to_file --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Int32 --req 'start:true, save_filename:"name.txt"'
 
 def StopCameraPoseCapture(model_name, gz_pose_file):
 
-    pose_storage_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
+    pose_storage_stop_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
                        f"--reptype gz.msgs.Int32 --req \'start:false, stop:true, save_filename:\"{gz_pose_file}\"\'"
-    result = subprocess.run(pose_storage_cmd, shell=True, capture_output=True, text=True)
+    result = subprocess.run(pose_storage_stop_cmd, shell=True, capture_output=True, text=True)
+
+def StartCameraVideoRecord(model_name, video_file):
+
+    camera_rcd_start_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
+                     f"gz.msgs.Boolean --req \'start:true, save_filename:\"{video_file}\"\'"
+    print(camera_rcd_start_cmd)
+    result = subprocess.run(camera_rcd_start_cmd, shell=True, capture_output=True, text=True)
+
+def StopCameraVideoRecord(model_name, video_file):
+
+    camera_rcd_stop_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
+                     f"gz.msgs.Boolean --req \'start:false, save_filename:\"{video_file}\"\'"
+    result = subprocess.run(camera_rcd_stop_cmd, shell=True, capture_output=True, text=True)
+
 
 # ------------ MAIN ------------
 if __name__ == '__main__':
