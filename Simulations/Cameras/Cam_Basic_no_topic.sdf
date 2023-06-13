@@ -70,7 +70,7 @@
                 <plugin
                     filename="gz-sim-camera-video-recorder-system"
                     name="gz::sim::systems::CameraVideoRecorder">
-                    <service>boxes_full_2d</service>
+                    <service>Cam_Basic_no_topic</service>
                     <use_sim_time>true</use_sim_time>
                     <fps>24</fps>
                 </plugin>

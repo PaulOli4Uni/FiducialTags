@@ -6,6 +6,7 @@ xx_name -> Refers to the name of the file (variable). Thus -> NO Extension in th
 """
 import sys
 import time
+
 import pandas as pd
 import numpy as np
 from dataclasses import dataclass
@@ -52,9 +53,9 @@ class dc_test_main_data:
 class dc_test_config_data:
     test_name: str
     movement_file: str
-    video_file: str
-    gz_pose_file: str
-    vid_pose_file: str
+    video_file: bool
+    gz_pose_file: bool
+    vid_pose_file: bool
     cameras: [dc_camera]
     markers: [dc_marker]
     lights: []  # todo: Add lights data class
@@ -89,7 +90,7 @@ def ImportSheet(tests_main, tests_config, filename):
 
         sheet.set_index("Parameter", inplace=True)
         main_file_path = sheet.loc["test_files_path"]['Info']
-        if not CheckStrValueGiven(main_file_path, "video_file"): return False
+        if not CheckStrValueGiven(main_file_path, "test_files_path"): return False
         if not os.path.exists(main_file_path):  # Ensure the path exists
             print("[ERR] Path provided does not exist")
             return False
@@ -116,6 +117,7 @@ def ImportSheet(tests_main, tests_config, filename):
         camera_row_index = sheet[sheet["Parameter"] == "cameras"].index[0]
         marker_row_index = sheet[sheet["Parameter"] == "markers"].index[0]
         light_row_index = sheet[sheet["Parameter"] == "lights"].index[0]
+
         max_row = len(sheet)
 
         sheet.set_index("Parameter", inplace=True)
@@ -125,23 +127,9 @@ def ImportSheet(tests_main, tests_config, filename):
         if not CheckCorrectExtention(movement_file, ".txt"): return False
         if not CheckFileExists(os.path.join(tests_main.test_files_path, "Movement_Files", movement_file)): return False
 
-        video_file = sheet.loc["video_file"]['Info']
-        if not CheckStrValueGiven(video_file, "video_file"): return False
-        if not CheckCorrectExtention(video_file, ".mp4"): return False
-
-        gz_pose_file = sheet.loc["gz_pose_file"]['Info']
-        if not CheckStrValueGiven(gz_pose_file, "gz_pose_file"): return False
-        if not CheckCorrectExtention(gz_pose_file, ".txt"): return False
-
-        vid_pose_file = sheet.loc["vid_pose_file"]['Info']
-        if type(vid_pose_file) == str:  # Input file is of type string, thus value is given
-            # NB: Test should not be performed with 'CheckStrValueGiven(vid_pose_file, "vid_pose_file")' as a error
-            # should not be returned if the input is not a string
-            if not CheckCorrectExtention(vid_pose_file, ".txt"): return False
-        else:  # Make sure file value is not a number (nan will tell sim program to not extract pose from generated
-            # video folder)
-            vid_pose_file = np.nan
-            print("[INFO] Video to pose file not provided")
+        video_file = ReturnCellBoolValue(sheet.loc["video_file"]['Info'])
+        gz_pose_file = ReturnCellBoolValue(sheet.loc["gz_pose_file"]['Info'])
+        vid_pose_file = ReturnCellBoolValue(sheet.loc["vid_pose_file"]['Info'])
 
         # Import Cameras, markers and lights
         cameras = []
@@ -211,6 +199,15 @@ def CheckFileExists(file):
         print(f"[ERR] {file} does not exist")
         return False
 
+def ReturnCellBoolValue(cell_value):
+
+    if type(cell_value) != str:  # Any string value will always be true
+        if np.isnan(cell_value):  # 'Nan' if no value is given, therefore 'False'
+            return False
+        else:
+            return bool(cell_value)
+    else:
+        return True
 
 def ImportCameras(cameras, main_files_path, sheet, start_index, end_index):
     for i in range(start_index, end_index):
@@ -293,72 +290,82 @@ def StartGazebo(main_config):
 
 def RunSim(main_config, tests_config):
 
-    i = 0 # <- For every world
 
-    test_config = tests_config[i]
-    world_name = main_config.world_file[:-4]
-    test_dir = os.path.join(main_config.test_files_path, "Tests", test_config.test_name)
-    print("[INFO] Making directory for test results at: \'" + test_dir + "\'")
-    # os.makedirs(test_dir)
-    if not os.path.exists(test_dir): # Create the directory
-        os.makedirs(test_dir)
-    else:  # Clear the directory of its contents
-        # os.remove(test_dir)
-        shutil.rmtree(test_dir)
-        os.makedirs(test_dir)
-    # Load Markers & Cameras
-    print("[INFO] Spawning Markers and Cameras")
-    for marker in test_config.markers:
-        LoadMarker(world_name, main_config.test_files_path, marker)
+    for test_config in tests_config:
+        world_name = main_config.world_file[:-4]
+        print("[INFO] Strating test: " + test_config.test_name)
+        test_dir = os.path.join(main_config.test_files_path, "Tests", test_config.test_name)
+        print("[INFO] Making directory for test results at: \'" + test_dir + "\'")
+        # os.makedirs(test_dir)
+        if not os.path.exists(test_dir): # Create the directory
+            os.makedirs(test_dir)
+        else:  # Clear the directory of its contents
+            # os.remove(test_dir)
+            shutil.rmtree(test_dir)
+            os.makedirs(test_dir)
+        # Load Markers & Cameras
+        print("[INFO] Spawning Markers and Cameras")
+        for marker in test_config.markers:
+            LoadMarker(world_name, main_config.test_files_path, marker)
 
-    for camera in test_config.cameras:
-        LoadCamera(world_name, main_config.test_files_path, camera)
-
-    # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
-    pose_message = LoadPoseMovementFile(main_config.test_files_path, test_config.movement_file)
-    if pose_message:
-        print("[INFO] Moving camera(s) to starting position")
         for camera in test_config.cameras:
-            RunPoseString(camera.camera_file[:-4], pose_message)
+            LoadCamera(world_name, main_config.test_files_path, camera)
+
+        # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
+        pose_message = LoadPoseMovementFile(main_config.test_files_path, test_config.movement_file)
+        if pose_message:
+            print("[INFO] Moving camera(s) to starting position")
+            for camera in test_config.cameras:
+                RunPoseString(camera.camera_file[:-4], pose_message)
+
+            PlaySim(world_name)
+            time.sleep(3) # todo: wait until movement complete msg
+            PauseSim(world_name)
+            # Move Camera to correct position (if needed ^- see above)
+            # Play Pause
+
+        print("[INFO] Running movement_file")
+        for camera in test_config.cameras:
+            camera_name = camera.camera_file[:-4]
+
+            if test_config.video_file:
+                video_file = f"vid_{camera_name}.mp4"
+                StartCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
+
+            if test_config.gz_pose_file:
+                gz_pose_file = f"gz_pose_{camera_name}.txt"
+                StartCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
+
+            RunPoseFile(camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
 
         PlaySim(world_name)
-        time.sleep(3) # todo: wait until movement complete msg
+
+        # Loads movement file
+        # Start Camera Record
+        # Play
+        # Func fin -> Pause Sim
+        time.sleep(180) # todo: wait until movement complete msg
         PauseSim(world_name)
-        # Move Camera to correct position (if needed ^- see above)
-        # Play Pause
+        print("[INFO] Movement_file finished")
 
-    print("[INFO] Running movement_file")
-    for camera in test_config.cameras:
-        camera_name = camera.camera_file[:-4]
-        gz_pose_file = f"gz_pose_{camera_name}.txt"
-        video_file = f"vid_{camera_name}.mp4"
-        StartCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
-        StartCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
-        RunPoseFile(camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
+        # Remove Markers and Cameras
+        print("[INFO] Removing Markers and Cameras")
+        for marker in test_config.markers:
+            RemoveModel(world_name, marker.marker_file[:-4])
+        for camera in test_config.cameras:
+            camera_name = camera.camera_file[:-4]
 
-    PlaySim(world_name)
+            if test_config.video_file:
+                video_file = f"vid_{camera_name}.mp4"
+                StopCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
 
-    # Loads movement file
-    # Start Camera Record
-    # Play
-    # Func fin -> Pause Sim
-    time.sleep(180) # todo: wait until movement complete msg
-    PauseSim(world_name)
-    print("[INFO] Movement_file finished")
+            if test_config.gz_pose_file:
+                gz_pose_file = f"gz_pose_{camera_name}.txt"
+                StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
 
-    # Remove Markers and Cameras
-    print("[INFO] Removing Markers and Cameras")
-    for marker in tests_config[i].markers:
-        RemoveModel(world_name, marker.marker_file[:-4])
-    for camera in tests_config[i].cameras:
-        camera_name = camera.camera_file[:-4]
-        gz_pose_file = f"gz_pose_{camera_name}.txt"
-        video_file = f"vid_{camera_name}.mp4"
-        StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
-        StopCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
-        RemoveModel(world_name, camera_name)
-    # Remove tmp_movement_file
-    os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))
+            RemoveModel(world_name, camera_name)
+        # Remove tmp_movement_file
+        os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))
 
     return True
 
