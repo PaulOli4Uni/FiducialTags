@@ -14,6 +14,7 @@ import subprocess
 import os
 from scipy.spatial.transform import Rotation
 import shutil
+import select
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
 parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
@@ -319,10 +320,8 @@ def RunSim(main_config, tests_config):
                 RunPoseString(camera.camera_file[:-4], pose_message)
 
             PlaySim(world_name)
-            time.sleep(3) # todo: wait until movement complete msg
+            WaitMovementComplete(test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
             PauseSim(world_name)
-            # Move Camera to correct position (if needed ^- see above)
-            # Play Pause
 
         print("[INFO] Running movement_file")
         for camera in test_config.cameras:
@@ -339,12 +338,7 @@ def RunSim(main_config, tests_config):
             RunPoseFile(camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
 
         PlaySim(world_name)
-
-        # Loads movement file
-        # Start Camera Record
-        # Play
-        # Func fin -> Pause Sim
-        time.sleep(180) # todo: wait until movement complete msg
+        WaitMovementComplete(test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
         PauseSim(world_name)
         print("[INFO] Movement_file finished")
 
@@ -364,8 +358,8 @@ def RunSim(main_config, tests_config):
                 StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
 
             RemoveModel(world_name, camera_name)
-        # Remove tmp_movement_file
-        os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))
+
+        os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))  # Remove tmp_movement_file
 
     return True
 
@@ -497,6 +491,23 @@ def StopCameraVideoRecord(model_name, video_file):
     camera_rcd_stop_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
                      f"gz.msgs.Boolean --req \'start:false, save_filename:\"{video_file}\"\'"
     result = subprocess.run(camera_rcd_stop_cmd, shell=True, capture_output=True, text=True)
+
+def WaitMovementComplete(model_name):
+
+    wait_cmd = f"gz topic -e -t /model/{model_name}/move_fin "
+    process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE)
+
+    movement_command_not_received = True
+    while movement_command_not_received:
+        output = process.stdout.readline()
+        # If value received, break from while
+        if process.poll() is not None:
+            break
+        if output:
+            process.terminate()
+            movement_command_not_received = False
+
+
 
 
 # ------------ MAIN ------------
