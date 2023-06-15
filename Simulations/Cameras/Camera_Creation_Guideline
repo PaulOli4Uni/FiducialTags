@@ -21,3 +21,12 @@
                 filename="Pose_To_File"
                 name="gz::sim::v7::systems::PoseToFile">
             </plugin>
+            
+            
+            
+Spawning Stereo Camera into standard world:
+gz service -s /world/standard_world/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Simulations/Cameras/Cam_Stereo.sdf", name: "Stereo_Cam", pose: {position: {x:1,y:1,z:2}}'
+
+Moving Stereo Camera
+gz topic -t /model/Stereo_Cam/pos_contr -m gz.msgs.StringMsg -p 'data:"0,0,2,170,50,170,1"'
+

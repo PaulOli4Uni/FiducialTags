@@ -14,7 +14,7 @@ import subprocess
 import os
 from scipy.spatial.transform import Rotation
 import shutil
-import select
+from Libraries import camera_properties
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
 parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
@@ -42,6 +42,7 @@ class dc_marker:
 class dc_camera:
     camera_file: str
     pose: dc_pose
+    config: camera_properties
 
 
 @dataclass()
@@ -144,6 +145,7 @@ def ImportSheet(tests_main, tests_config, filename):
 
         test_data = dc_test_config_data(test_name, movement_file, video_file, gz_pose_file, vid_pose_file, cameras,
                                         markers, lights)
+
         tests_config.append(test_data)
     return True
 
@@ -214,11 +216,12 @@ def ImportCameras(cameras, main_files_path, sheet, start_index, end_index):
     for i in range(start_index, end_index):
         sheet_row = sheet.iloc[i]
 
+        # File name
         camera_file = sheet_row["Info"]
-        if not CheckCorrectExtention(camera_file, ".sdf"):
-            return False
+        if not CheckCorrectExtention(camera_file, ".sdf"): return False
         if not CheckFileExists(os.path.join(main_files_path, "Cameras", camera_file)): return False
 
+        # Camera Model Pose
         camera_pose = sheet_row["Additional_Info"]
         pose = dc_pose(0, 0, 0, 0, 0, 0)
         if type(camera_pose) == str:  # Type is a string and pose has been provided
@@ -229,7 +232,15 @@ def ImportCameras(cameras, main_files_path, sheet, start_index, end_index):
             else:
                 pose = dc_pose(pose_list[0], pose_list[1], pose_list[2], pose_list[3], pose_list[4], pose_list[5])
 
-        camera = dc_camera(camera_file, pose)
+        # Camera Config
+        cam_config_file_dir = os.path.join(main_files_path, "Cameras", (camera_file[:-4] + "_config.txt"))
+        if not CheckFileExists(cam_config_file_dir): return False  # Check that Cam Config File Present
+        cam_properties = camera_properties.CameraLoader(cam_config_file_dir)
+        if not cam_properties.load_properties():
+            print("[ERR] in Camera Config File ")
+            return False
+
+        camera = dc_camera(camera_file, pose, camera_properties)
         cameras.append(camera)
     return True
 
@@ -328,6 +339,7 @@ def RunSim(main_config, tests_config):
             camera_name = camera.camera_file[:-4]
 
             if test_config.video_file:
+                # todo: Camera record topic is from config file -> use for video name as well
                 video_file = f"vid_{camera_name}.mp4"
                 StartCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
 
@@ -515,6 +527,7 @@ if __name__ == '__main__':
 
     test_path = os.path.dirname(os.path.abspath(__file__))
     # Setup and import data
+
     filename = test_path + "/Test.xlsx"
     if not CheckCorrectExtention(filename, ".xlsx"):
         print("[ERR] Incorrect file extension given for .xlsx")

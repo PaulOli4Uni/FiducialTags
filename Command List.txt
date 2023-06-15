@@ -1,0 +1,25 @@
+Follwing Commands used 
+
+Running simulation
+gz sim -v 3 Marker3_PoseToFile.sdf 
+
+Start Recording (will place recording in working directory)
+gz service -s /boxes_full_2d --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Boolean --req 'start:true, save_filename:"name.mp4"'
+Stop Recording
+gz service -s /boxes_full_2d --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Boolean --req 'start:false, save_filename:"name.mp4"'
+
+Running single pose instruction
+# gz topic -t /box/pos_contr -m gz.msgs.StringMsg -p 'data:"0,0,2,170,50,170,1"'
+
+Running pose_movement file
+gz topic -t /file -m gz.msgs.StringMsg -p 'data:"/home/stb21753492/Sim_Markers/World_1Marker/pose_file2.txt"'
+
+Storing Pose information of camera
+gz service -s /pose_to_file --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Int32 --req 'start:true, save_filename:"name.txt"'
+
+
+
+Spawn Model (With pose info)
+gz service -s /world/standard_world/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean --timeout 1000 --req 'sdf_filename: "/home/stb21753492/FiducialTags/Simulations/Markers/DICT_4X4_50_s500/DICT_4X4_50_s500_id1/DICT_4X4_50_s500_id1.sdf", name: "DICT_4X4_50_s500_id77", pose: {position: {x:1,y:1,z:2}, orientation: {x:0.5609,y:0.4305,z:-0.0923,w:0.70105}}'
+Play/Pause Sim
+gz service -s /world/standard_world/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 1000 --req 'pause: true'

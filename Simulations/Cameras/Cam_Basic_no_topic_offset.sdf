@@ -83,8 +83,8 @@
                 filename="Position_Control"
                 name="gz::sim::v7::systems::PositionController">
                 <timestep_precision>10</timestep_precision>
-                <xyz_offset> 1 1 0.8</xyz_offset>
-                <rpy_offset> 0 1.57 0</rpy_offset>
+                <xyz_offset> 0 0 -0.3</xyz_offset>
+                <rpy_offset> 0 0 0</rpy_offset>
             </plugin>
 
             <plugin
