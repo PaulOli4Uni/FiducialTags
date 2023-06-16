@@ -19,8 +19,8 @@ class CameraProperties:
     horizontal_fov: float
     img_width: int
     img_height: int
-    clip_near: int
-    clip_far: int
+    clip_near: float
+    clip_far: float
     lens_type: str
     cutoff_angle: float
     framerate: int
@@ -68,8 +68,8 @@ class CameraLoader:
                         horizontal_fov=float(properties['horizontal_fov']),
                         img_width=int(properties['img_width']),
                         img_height=int(properties['img_height']),
-                        clip_near=int(properties['clip_near']),
-                        clip_far=int(properties['clip_far']),
+                        clip_near=float(properties['clip_near']),
+                        clip_far=float(properties['clip_far']),
                         lens_type=properties['lens_type'],
                         cutoff_angle=float(properties['cutoff_angle']),
                         framerate=int(properties['framerate'])
@@ -122,3 +122,6 @@ class CameraLoader:
                 return cam_property
 
         raise ValueError(f"No camera properties found for topic_name '{topic_name}'")
+
+    def get_num_cameras(self) -> int:
+        return len(self.camera_properties)
