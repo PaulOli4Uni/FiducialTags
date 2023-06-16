@@ -240,7 +240,7 @@ def ImportCameras(cameras, main_files_path, sheet, start_index, end_index):
             print("[ERR] in Camera Config File ")
             return False
 
-        camera = dc_camera(camera_file, pose, camera_properties)
+        camera = dc_camera(camera_file, pose, cam_properties)
         cameras.append(camera)
     return True
 
@@ -339,9 +339,10 @@ def RunSim(main_config, tests_config):
             camera_name = camera.camera_file[:-4]
 
             if test_config.video_file:
-                # todo: Camera record topic is from config file -> use for video name as well
-                video_file = f"vid_{camera_name}.mp4"
-                StartCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
+                topic_names = camera.config.get_all_topic_names()
+                for topic_name in topic_names:
+                    video_file = f"vid_{camera_name}_{topic_name}.mp4"
+                    StartCameraVideoRecord(topic_name, os.path.join(test_dir, video_file))
 
             if test_config.gz_pose_file:
                 gz_pose_file = f"gz_pose_{camera_name}.txt"
@@ -362,8 +363,12 @@ def RunSim(main_config, tests_config):
             camera_name = camera.camera_file[:-4]
 
             if test_config.video_file:
-                video_file = f"vid_{camera_name}.mp4"
-                StopCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
+                # video_file = f"vid_{camera_name}.mp4"
+                # StopCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
+                topic_names = camera.config.get_all_topic_names()
+                for topic_name in topic_names:
+                    video_file = f"vid_{camera_name}_{topic_name}.mp4"
+                    StopCameraVideoRecord(topic_name, os.path.join(test_dir, video_file))
 
             if test_config.gz_pose_file:
                 gz_pose_file = f"gz_pose_{camera_name}.txt"
@@ -495,7 +500,6 @@ def StartCameraVideoRecord(model_name, video_file):
 
     camera_rcd_start_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
                      f"gz.msgs.Boolean --req \'start:true, save_filename:\"{video_file}\"\'"
-    print(camera_rcd_start_cmd)
     result = subprocess.run(camera_rcd_start_cmd, shell=True, capture_output=True, text=True)
 
 def StopCameraVideoRecord(model_name, video_file):
