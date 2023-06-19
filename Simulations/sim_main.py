@@ -487,7 +487,7 @@ def StartCameraPoseCapture(model_name, gz_pose_file):
 
     pose_storage_start_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
                        f"--reptype gz.msgs.Int32 --req \'start:true, stop:false, save_filename:\"{gz_pose_file}\"\'"
-    print(pose_storage_start_cmd)
+    # print(pose_storage_start_cmd)
     result = subprocess.run(pose_storage_start_cmd, shell=True, capture_output=True, text=True)
     # gz service -s /pose_to_file --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Int32 --req 'start:true, save_filename:"name.txt"'
 
@@ -495,7 +495,7 @@ def StopCameraPoseCapture(model_name, gz_pose_file):
 
     pose_storage_stop_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
                        f"--reptype gz.msgs.Int32 --req \'start:false, stop:true, save_filename:\"{gz_pose_file}\"\'"
-    print(pose_storage_stop_cmd)
+    # print(pose_storage_stop_cmd)
     result = subprocess.run(pose_storage_stop_cmd, shell=True, capture_output=True, text=True)
 
 def StartCameraVideoRecord(model_name, video_file):
