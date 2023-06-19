@@ -49,6 +49,8 @@ import cv2
 import sys
 import os
 
+height = 0.005
+
 ARUCO_DICT = {
     "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
     "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
@@ -153,7 +155,6 @@ def CreateObjFileVerteces(size):
     str_file = ""
     length = size
     width = size
-    height = 0.005
 
     vertices = [
         (-length / 2, -width / 2, -height / 2),  # Vertex 0
@@ -258,7 +259,7 @@ Ns 96.0784
 d 1
 illum 1
 Ka 0 0 0
-Ks 1 1 1
+Ks 0 0 0
 map_Kd {filename}.png
 
 newmtl CubeOther
@@ -267,7 +268,7 @@ Ns 96.0784
 d 1
 illum 1
 Ka 0 0 0
-Ks 1 1 1
+Ks 0 0 0
 map_Kd white.png"""
     return mtl_file_str
 
@@ -278,7 +279,7 @@ def CreateSDFFileString(filename):
               <link name="Main">
                 <pose>0 0 0 0 0 0</pose>
                     <visual name="{filename}_Visual">
-                        <pose>0 0 0 0 0 0</pose>
+                        <pose>0 0 {2*height} 0 0 0</pose>
                         <geometry>
                             <mesh>
                                 <scale>1 1 1</scale>
