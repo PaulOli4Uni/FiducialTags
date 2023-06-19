@@ -40,7 +40,7 @@ output_dir: (model directory provided by user)
 
 Example of terminal message to generate a set of the first marker type
 python3 Marker_Generator.py -f "CreateObj"  -o "FileLocation" -n 10 -t "DICT_4X4_50" -s 1000
-python3 Marker_Generator.py -f "CreateObj"  -o "/home/stb21753492/FiducialTags/Markers" -n 10 -t "DICT_4X4_50" -s 1000
+python3 Marker_Generator.py -f "CreateObj"  -o "/home/stb21753492/FiducialTags/Simulations/Markers" -n 10 -t "DICT_4X4_50" -s 1000
 """
 
 import numpy as np
