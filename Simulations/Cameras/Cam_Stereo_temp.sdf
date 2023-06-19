@@ -1,0 +1,209 @@
+<?xml version="1.0" ?>
+    <sdf version="1.5">
+        <model name="camera">
+            <pose>0 0 0 0 0 0</pose>
+
+            <link name="Middel">
+                <pose>-0.025 0 0 0 0 0</pose>
+                <inertial>
+                    <mass>0.8</mass>
+                    <pose>0.025 0 0 0 0 0</pose>
+                    <inertia>
+                        <ixx>0.8</ixx>
+                        <iyy>0.8</iyy>
+                        <izz>0.8</izz>
+                    </inertia>
+                </inertial>
+                <collision name="collision">
+                <geometry>
+                    <box>
+                    <size>0.05 0.2 0.1</size>
+                    </box>
+                </geometry>
+                </collision>
+                <visual name="visual">
+                <geometry>
+                    <box>
+                    <size>0.05 0.2 0.1</size>
+                    </box>
+                </geometry>
+                </visual>
+
+
+                <sensor name="camera_left" type="camera">
+                <pose>0 0.15 0 0 0 0</pose>
+                <topic>camera_left</topic>
+                <camera>
+                    <box_type>full_2d</box_type>
+                    <horizontal_fov>1.047</horizontal_fov>
+                    <image>
+                    <width>800</width>
+                    <height>600</height>
+                    </image>
+                    <clip>
+                    <near>0.1</near>
+                    <far>10</far>
+                    </clip>
+                    <save enabled="true">
+                    <path>../tmp_files/stereo_left</path>
+                    </save>
+                    <distortion>
+                    <k1>1</k1>
+                    <k2>10</k2>
+                    <k3>5</k3>
+                    <p1>10</p1>
+                    <p2>10</p2>
+                    <center>0.5 0.5</center>
+                    </distortion>
+                    <lens>
+                    <type>stereographic</type>
+                    <scale_to_hfov>true</scale_to_hfov>
+                    <cutoff_angle>1.5707963267948966</cutoff_angle>
+                    <env_texture_size>256</env_texture_size>
+                    </lens>
+                </camera>
+                <always_on>1</always_on>
+                <update_rate>24</update_rate>
+                <visualize>true</visualize>
+
+                <plugin
+                    filename="gz-sim-camera-video-recorder-system"
+                    name="gz::sim::systems::CameraVideoRecorder">
+                    <service>camera_left</service>
+                    <use_sim_time>true</use_sim_time>
+                    <fps>24</fps>
+                </plugin>
+
+                </sensor>
+
+                <sensor name="camera_right" type="camera">
+                <pose>0 -0.15 0 0 0 0</pose>
+                <topic>camera_right</topic>
+                <camera>
+                    <box_type>full_2d</box_type>
+                    <horizontal_fov>1.047</horizontal_fov>
+                    <image>
+                    <width>800</width>
+                    <height>600</height>
+                    </image>
+                    <clip>
+                    <near>0.1</near>
+                    <far>10</far>
+                    </clip>
+                    <save enabled="true">
+                    <path>../tmp_files/stereo_right</path>
+                    </save>
+                    <distortion>
+                    <k1>1</k1>
+                    <k2>10</k2>
+                    <k3>5</k3>
+                    <p1>10</p1>
+                    <p2>10</p2>
+                    <center>0.5 0.5</center>
+                    </distortion>
+                    <lens>
+                    <type>stereographic</type>
+                    <scale_to_hfov>true</scale_to_hfov>
+                    <cutoff_angle>1.5707963267948966</cutoff_angle>
+                    <env_texture_size>256</env_texture_size>
+                    </lens>
+                </camera>
+                <always_on>1</always_on>
+                <update_rate>24</update_rate>
+                <visualize>true</visualize>
+
+                <plugin
+                    filename="gz-sim-camera-video-recorder-system"
+                    name="gz::sim::systems::CameraVideoRecorder">
+                    <service>camera_right</service>
+                    <use_sim_time>true</use_sim_time>
+                    <fps>24</fps>
+                </plugin>
+
+                </sensor>
+
+
+            </link>
+
+            <link name="Left">
+                <pose>0 0.15 0 0 0 0</pose>
+                <inertial>
+                    <mass>0.1</mass>
+                    <pose>0 -0.15 0 0 0 0</pose>
+                    <inertia>
+                        <ixx>0.1</ixx>
+                        <iyy>0.1</iyy>
+                        <izz>0.1</izz>
+                    </inertia>
+                </inertial>
+                <collision name="collision">
+                <geometry>
+                    <box>
+                    <size>0.2 0.1 0.1</size>
+                    </box>
+                </geometry>
+                </collision>
+                <visual name="visual">
+                <geometry>
+                    <box>
+                    <size>0.2 0.1 0.1</size>
+                    </box>
+                </geometry>
+                </visual>
+
+            </link>
+
+            <link name="Right">
+                <pose>0 -0.15 0 0 0 0</pose>
+                <inertial>
+                    <mass>0.1</mass>
+                    <pose>0 0.15 0 0 0 0</pose>
+                    <inertia>
+                        <ixx>0.1</ixx>
+                        <iyy>0.1</iyy>
+                        <izz>0.1</izz>
+                    </inertia>
+                </inertial>
+                <collision name="collision">
+                <geometry>
+                    <box>
+                    <size>0.2 0.1 0.1</size>
+                    </box>
+                </geometry>
+                </collision>
+                <visual name="visual">
+                <geometry>
+                    <box>
+                    <size>0.2 0.1 0.1</size>
+                    </box>
+                </geometry>
+                </visual>
+
+            </link>
+
+            <joint type="fixed" name="left_cam">
+                <pose>0 0.15 0 0 0 0</pose>
+                <parent>Middel</parent>
+                <child>Left</child>
+            </joint>
+
+            <joint type="fixed" name="RIGHT_cam">
+                <pose>0 -0.15 0 0 0 0</pose>
+                <parent>Middel</parent>
+                <child>Right</child>
+            </joint>
+
+            <plugin
+                filename="Position_Control"
+                name="gz::sim::v7::systems::PositionController">
+                <timestep_precision>10</timestep_precision>
+                <xyz_offset> 0 0 0</xyz_offset>
+                <rpy_offset> 0 0 0</rpy_offset>
+            </plugin>
+
+            <plugin
+                filename="Pose_To_File"
+                name="gz::sim::v7::systems::PoseToFile">
+            </plugin>
+        </model>
+    </sdf>

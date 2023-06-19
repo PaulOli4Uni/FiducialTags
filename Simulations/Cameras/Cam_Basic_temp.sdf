@@ -27,8 +27,8 @@
                 </geometry>
                 </visual>
 
-                <sensor name="camera1" type="camera">
-                <topic>boxes_full_2d</topic>
+                <sensor name="camera" type="camera">
+                <topic>cam_basic</topic>
                 <camera>
                     <box_type>full_2d</box_type>
                     <horizontal_fov>1.047</horizontal_fov>
@@ -41,7 +41,7 @@
                     <far>10</far>
                     </clip>
                     <save enabled="true">
-                    <path>bounding_box_full_2d_data</path>
+                    <path>../tmp_files/camera</path>
                     </save>
                     <noise>
                     <type>gaussian</type>
@@ -64,13 +64,13 @@
                     </lens>
                 </camera>
                 <always_on>1</always_on>
-                <update_rate>30</update_rate>
+                <update_rate>24</update_rate>
                 <visualize>true</visualize>
 
                 <plugin
                     filename="gz-sim-camera-video-recorder-system"
                     name="gz::sim::systems::CameraVideoRecorder">
-                    <service>Cam_Basic_no_topic</service>
+                    <service>cam_basic</service>
                     <use_sim_time>true</use_sim_time>
                     <fps>24</fps>
                 </plugin>
