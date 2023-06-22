@@ -518,6 +518,7 @@ def WaitMovementComplete(model_name):
     movement_command_not_received = True
     while movement_command_not_received:
         output = process.stdout.readline()
+        print(output)
         # If value received, break from while
         if process.poll() is not None:
             break
