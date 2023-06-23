@@ -3,18 +3,20 @@ Code from: https://betterprogramming.pub/getting-started-with-aruco-markers-b482
 
 Code genereates a pdf that can be printed with multiple markers on it
 Input paramaters:
-    The size of the marker/tag in mm
-    The size of the margins between the markers in mm
-    The number of tags in the X direction
-    The number of tags in the Y direction
-    If the id of the tag should be written above the tag or not
-    The name of the image output file
-    The id of the first tag to be put on the page
-    The DPI of the output image
-    The type of marker or tag to generate
+    -s The size of the marker/tag in mm
+    -m The size of the margins between the markers in mm
+    -x The number of tags in the X direction
+    -y The number of tags in the Y direction
+    -d If the id of the tag should be written above the tag or not
+    -o The name of the image output file
+    -i The id of the first tag to be put on the page
+    --write-id The DPI of the output image
+    -t The type of marker or tag to generate
 
 Example terminal message:
 python aruco_gen_page.py -o "aruco_markers.png" -i 0 -t "DICT_5X5_50" -d 72 --write-id -x 3 -y 4
+python3 Paper_Marker_Generator.py -o "aruco_markers.png" -i 0 -t "DICT_5X5_50" -d 72 --write-id -s 150 -x 1 -y 1
+
 """
 
 import argparse

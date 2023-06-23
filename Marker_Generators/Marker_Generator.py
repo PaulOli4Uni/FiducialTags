@@ -10,7 +10,7 @@ Properties:
 -n --num: Number of ArUCo tags to generate, ranges from 0 -> M-1
 -id --id: ID of ArUCo tag to generate (number of tags = 1)
 -i --inputpath: Path to folder where .png images are stored (when converting from png to obj)
--s --size: Size of marker in mm (pixels)
+-s --size: Size of marker in mm (pixels) (for square markers)
 -t --type: Type of Marker to generate (see dictionary below for marker types) NxN_M
 	N -> Bits
 	M -> Unique ID's to generate
@@ -36,7 +36,15 @@ output_dir: (model directory provided by user)
 |		|->Marker_ID_Y.mtl
 |-->MarkerType2
 
+Marker Dim:
 
+        /-------/|  ------ ^
+       /       / |  height |
+      /_______/  |  ------ v
+     |       |  /
+     |       | /  width
+     |-------|/
+      length
 
 Example of terminal message to generate a set of the first marker type
 python3 Marker_Generator.py -f "CreateObj"  -o "FileLocation" -n 10 -t "DICT_4X4_50" -s 1000
@@ -49,7 +57,9 @@ import cv2
 import sys
 import os
 
-height = 0.005
+# height = 0.005
+width = 0.005
+
 
 ARUCO_DICT = {
     "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
@@ -96,7 +106,7 @@ def SetupArguments(ap):
     ap.add_argument("-i", "--input_dir", type=str,
                     help="Path to folder where .png images are stored (when converting from png to obj")
     ap.add_argument("-s", "--size", type=int, required=True,
-                    help="Physical size of marker to generate in mm (pixels)")
+                    help="Physical size of marker to generate in mm (pixels) [for square markers]")
     ap.add_argument("-t", "--type", type=str, required=True,
                     default="DICT_ARUCO_ORIGINAL",
                     help="Type of ArUCo tag to generate")
@@ -120,7 +130,6 @@ def CheckTagNumberToGenerate(num, id):
             print("[ERR] ID must be provided when generating 1 tag")
             sys.exit(0)
         print("[INFO] Only 1 tag to be generated, ID = " + str(id))
-
 
 # Todo: check that number of tags to generate is <= dictionary max
 
@@ -154,17 +163,28 @@ def CreatePng(marker_type, num, marker_id, size, output_dir):
 def CreateObjFileVerteces(size):
     str_file = ""
     length = size
-    width = size
+    height = size
+
+    # vertices = [
+    #     (-length / 2, -width / 2, -height / 2),  # Vertex 0
+    #     (length / 2, -width / 2, -height / 2),  # Vertex 1
+    #     (length / 2, width / 2, -height / 2),  # Vertex 2
+    #     (-length / 2, width / 2, -height / 2),  # Vertex 3
+    #     (-length / 2, -width / 2, height / 2),  # Vertex 4
+    #     (length / 2, -width / 2, height / 2),  # Vertex 5
+    #     (length / 2, width / 2, height / 2),  # Vertex 6
+    #     (-length / 2, width / 2, height / 2)  # Vertex 7
+    # ]
 
     vertices = [
-        (-length / 2, -width / 2, -height / 2),  # Vertex 0
-        (length / 2, -width / 2, -height / 2),  # Vertex 1
-        (length / 2, width / 2, -height / 2),  # Vertex 2
-        (-length / 2, width / 2, -height / 2),  # Vertex 3
-        (-length / 2, -width / 2, height / 2),  # Vertex 4
-        (length / 2, -width / 2, height / 2),  # Vertex 5
-        (length / 2, width / 2, height / 2),  # Vertex 6
-        (-length / 2, width / 2, height / 2)  # Vertex 7
+        (-length / 2, -height / 2, -width / 2),  # Vertex 0
+        (length / 2, -height / 2, -width / 2),  # Vertex 1
+        (length / 2, height / 2, -width / 2),  # Vertex 2
+        (-length / 2, height / 2, -width / 2),  # Vertex 3
+        (-length / 2, height / 2, width / 2),  # Vertex 4
+        (length / 2, height / 2, width / 2),  # Vertex 5
+        (length / 2, height / 2, width / 2),  # Vertex 6
+        (-length / 2, height / 2, width / 2)  # Vertex 7
     ]
 
     for i in range(len(vertices)):
@@ -182,7 +202,7 @@ def CreateObj(marker_type, num, marker_id, size, output_dir):
     os.makedirs(png_files_dir)
     CreatePng(marker_type, num, marker_id, size, png_files_dir)
     # Size given in mm -> need to convert to m
-    vertexes_str = CreateObjFileVerteces(size / 1000)
+    vertexes_str = CreateObjFileVerteces(size/1000)
 
     for i in range(num):
         if num == 1:  # If only 1 marker, generate specific id (loop wil only run once)
@@ -279,7 +299,7 @@ def CreateSDFFileString(filename):
               <link name="Main">
                 <pose>0 0 0 0 0 0</pose>
                     <visual name="{filename}_Visual">
-                        <pose>0 0 {2*height} 0 0 0</pose>
+                        <pose>0 0 {2*width} 0 0 0</pose>
                         <geometry>
                             <mesh>
                                 <scale>1 1 1</scale>
@@ -322,7 +342,8 @@ if __name__ == '__main__':
             CheckTagNumberToGenerate(args["num"], args["id"])
         case 3:
             print("[INFO] Function \'PngToObj\' selected")
-        # todo: Check input png file exists
+            # todo: Check input png file exists
+
     CheckOutputDir(args["output_dir"])
 
     ## Create Img/Markers
