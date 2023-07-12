@@ -17,7 +17,7 @@ import shutil
 from Libraries import camera_properties
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
-parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights"}
+parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights", "models"}
 parameters_main = {"test_files_path", "world_file"}
 
 tmp_movement_file_dir = 'tmp_files/tmp_file.txt'
@@ -37,6 +37,10 @@ class dc_marker:
     marker_file: str
     pose: dc_pose
 
+@dataclass()
+class dc_model:
+    model_file: str
+    pose: dc_pose
 
 @dataclass()
 class dc_camera:
@@ -61,6 +65,7 @@ class dc_test_config_data:
     cameras: [dc_camera]
     markers: [dc_marker]
     lights: []  # todo: Add lights data class
+    models: [dc_model]
 
 
 # ------------ DATA IMPORT ------------
@@ -119,6 +124,7 @@ def ImportSheet(tests_main, tests_config, filename):
         camera_row_index = sheet[sheet["Parameter"] == "cameras"].index[0]
         marker_row_index = sheet[sheet["Parameter"] == "markers"].index[0]
         light_row_index = sheet[sheet["Parameter"] == "lights"].index[0]
+        model_row_index = sheet[sheet["Parameter"] == "models"].index[0]
 
         max_row = len(sheet)
 
@@ -141,10 +147,13 @@ def ImportSheet(tests_main, tests_config, filename):
         if not ImportMarkers(markers, tests_main.test_files_path, sheet, marker_row_index, light_row_index): return False
 
         lights = []
-        if not ImportLights(lights, tests_main.test_files_path, sheet, light_row_index, max_row): return False
+        if not ImportLights(lights, tests_main.test_files_path, sheet, light_row_index, model_row_index): return False
+
+        models = []
+        if not ImportModels(models, tests_main.test_files_path, sheet, model_row_index, max_row): return False
 
         test_data = dc_test_config_data(test_name, movement_file, video_file, gz_pose_file, vid_pose_file, cameras,
-                                        markers, lights)
+                                        markers, lights, models)
 
         tests_config.append(test_data)
     return True
@@ -250,6 +259,9 @@ def ImportMarkers(markers, main_files_path, sheet, start_index, end_index):
         sheet_row = sheet.iloc[i]
 
         marker_file = sheet_row["Info"]
+        if type(marker_file) != str:  # Check for NaN, (then no marker present)
+            return True
+
         if not CheckCorrectExtention(marker_file, ".sdf"):
             print("[ERR]: Incorrect marker Extension found for: \'" + marker_file + "\'")
             return False
@@ -274,12 +286,44 @@ def ImportMarkers(markers, main_files_path, sheet, start_index, end_index):
 def ImportLights(lights, main_files_path, sheet, start_index, end_index):
     return True
 
+def ImportModels(models, main_files_path, sheet, start_index, end_index):
+    for i in range(start_index, end_index):
+        sheet_row = sheet.iloc[i]
+
+        model_file = sheet_row["Info"]
+        if type(model_file) != str:  # Check for NaN, (then no model present)
+            return True
+
+        if not CheckCorrectExtention(model_file, ".sdf"):
+            print("[ERR]: Incorrect model Extension found for: \'" + model_file + "\'")
+            return False
+        if not CheckFileExists(FilePathToModel(main_files_path, model_file)): return False
+
+        model_pose = sheet_row["Additional_Info"]
+        pose = dc_pose(0, 0, 0, 0, 0, 0)
+        if type(model_pose) == str:  # Type is a string and pose has been provided
+            pose_list = [float(x) for x in model_pose.split(',')]
+            if len(pose_list) != 6:
+                print(
+                    "[WARN]: Incorrect number of pose variables provided for: \'" + model_file + "\'. Pose set as [0,0,0,0,0,0]")
+            else:
+                pose = dc_pose(pose_list[0], pose_list[1], pose_list[2], pose_list[3], pose_list[4], pose_list[5])
+
+        model = dc_model(model_file, pose)
+        models.append(model)
+
+    return True
+
+
 def FilePathToMarker(main_files_path, marker_file):
     marker_name = marker_file[:-4]  # Drops extension from string
     marker_name_no_id = marker_name.rsplit('_', 1)[0]  # Removes _idXX portion of name
     path_to_marker_file = os.path.join(main_files_path, "Markers", marker_name_no_id, marker_name, marker_file)
     return path_to_marker_file
 
+def FilePathToModel(main_files_path, model_file):
+    path_to_model_file = os.path.join(main_files_path, "Models", model_file[:-4], model_file)
+    return path_to_model_file
 # ------------ SIMULATION ------------
 def StartGazebo(main_config):
     # Start Gazebo sim Give time for sim to open fully
@@ -315,13 +359,18 @@ def RunSim(main_config, tests_config):
             # os.remove(test_dir)
             shutil.rmtree(test_dir)
             os.makedirs(test_dir)
-        # Load Markers & Cameras
+        # Load Markers, Cameras and Models
         print("[INFO] Spawning Markers and Cameras")
         for marker in test_config.markers:
             LoadMarker(world_name, main_config.test_files_path, marker)
 
         for camera in test_config.cameras:
             LoadCamera(world_name, main_config.test_files_path, camera)
+
+        for model in test_config.models:
+            model_file = model.model_file
+            path_to_model_file = FilePathToModel(main_config.test_files_path, model_file)
+            LoadModel(world_name, path_to_model_file, model_file[:-4], model.pose)
 
         # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
         pose_message = LoadPoseMovementFile(main_config.test_files_path, test_config.movement_file)
@@ -355,7 +404,7 @@ def RunSim(main_config, tests_config):
         PauseSim(world_name)
         print("[INFO] Movement_file finished")
 
-        # Remove Markers and Cameras
+        # Remove Markers, Cameras and Models
         print("[INFO] Removing Markers and Cameras")
         for marker in test_config.markers:
             RemoveModel(world_name, marker.marker_file[:-4])
@@ -376,10 +425,11 @@ def RunSim(main_config, tests_config):
 
             RemoveModel(world_name, camera_name)
 
+        for model in test_config.models:
+            RemoveModel(world_name, model.model_file[:-4])
         # os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))  # Remove tmp_movement_file
 
     return True
-
 
 def LoadMarker(world_name, main_path, marker_dc):
 
@@ -518,7 +568,6 @@ def WaitMovementComplete(model_name):
     movement_command_not_received = True
     while movement_command_not_received:
         output = process.stdout.readline()
-        print(output)
         # If value received, break from while
         if process.poll() is not None:
             break
@@ -535,7 +584,7 @@ if __name__ == '__main__':
     test_path = os.path.dirname(os.path.abspath(__file__))
     # Setup and import data
 
-    filename = test_path + "/Test.xlsx"
+    filename = test_path + "/Calibration.xlsx"
     if not CheckCorrectExtention(filename, ".xlsx"):
         print("[ERR] Incorrect file extension given for .xlsx")
         sys.exit()
