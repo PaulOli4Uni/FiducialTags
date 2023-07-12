@@ -181,8 +181,8 @@ def CreateObjFileVerteces(size):
         (length / 2, -height / 2, -width / 2),  # Vertex 1
         (length / 2, height / 2, -width / 2),  # Vertex 2
         (-length / 2, height / 2, -width / 2),  # Vertex 3
-        (-length / 2, height / 2, width / 2),  # Vertex 4
-        (length / 2, height / 2, width / 2),  # Vertex 5
+        (-length / 2, -height / 2, width / 2),  # Vertex 4
+        (length / 2, -height / 2, width / 2),  # Vertex 5
         (length / 2, height / 2, width / 2),  # Vertex 6
         (-length / 2, height / 2, width / 2)  # Vertex 7
     ]
