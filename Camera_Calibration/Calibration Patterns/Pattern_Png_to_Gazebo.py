@@ -29,7 +29,7 @@ Marker Dim:
       length
 
 Example of terminal message to generate a set of the first marker type
-python3 Generate_Gz_Calibration_Pattern.py -i "pattern.png" -o "Patten_Gz" -l 297 -ht 210
+python3 Pattern_Png_to_Gazebo.py -i "pattern.png" -o "Patten_Gz" -l 297 -ht 210
 
 """
 
