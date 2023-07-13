@@ -372,6 +372,24 @@ def RunSim(main_config, tests_config):
             path_to_model_file = FilePathToModel(main_config.test_files_path, model_file)
             LoadModel(world_name, path_to_model_file, model_file[:-4], model.pose)
 
+
+        # Check that all models have loaded
+        num_models = len(test_config.markers) + len(test_config.cameras) + len(test_config.models)
+
+        num_model_cmd = "gz model --list"
+        result = subprocess.run(num_model_cmd, shell=True, capture_output=True, text=True)
+
+        while True:
+            model_count = 0
+            for char in result.stdout:  # Command output presents models with a '-' in buller format
+                if char == '-':
+                    model_count += 1
+
+            if model_count == num_models:
+                break
+            else:
+                time.sleep(0.1)
+
         # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
         pose_message = LoadPoseMovementFile(main_config.test_files_path, test_config.movement_file)
         if pose_message:
