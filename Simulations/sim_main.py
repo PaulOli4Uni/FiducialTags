@@ -602,7 +602,7 @@ if __name__ == '__main__':
     test_path = os.path.dirname(os.path.abspath(__file__))
     # Setup and import data
 
-    filename = test_path + "/Calibration.xlsx"
+    filename = test_path + "/Test.xlsx"
     if not CheckCorrectExtention(filename, ".xlsx"):
         print("[ERR] Incorrect file extension given for .xlsx")
         sys.exit()
