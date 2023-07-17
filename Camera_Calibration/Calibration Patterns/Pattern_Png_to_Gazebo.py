@@ -3,7 +3,9 @@ Code Sources:
  https://pyimagesearch.com/2020/12/14/generating-aruco-markers-with-opencv-and-python/
  https://grabcad.com/tutorials/create-an-obj-cube-with-your-favorite-images
 
-File creates a SET of Aruco Markers
+Script creates a folder containing all files to use calibration pattern (input image) in Gazebo.
+Gazebo model name will be based on output_dir provided. The provided image will be copied to same directory as well
+
 Properties:
 -o --output_dir: path to file where tags/images should be stored (for Obj make it the model directory)
 -i --input_image: Path to .png image file
@@ -29,7 +31,12 @@ Marker Dim:
       length
 
 Example of terminal message to generate a set of the first marker type
+For A4 Pattern
 python3 Pattern_Png_to_Gazebo.py -i "pattern.png" -o "Patten_Gz" -l 297 -ht 210
+
+For Cropped Pattern
+ python3 Pattern_Png_to_Gazebo.py -i "pattern_cropped.png" -o "Pattern_Cropped_Gz" -l 227.33 -ht 159.13
+
 
 """
 
@@ -44,12 +51,12 @@ white_img_tag = 255 * np.ones((100, 100, 1), dtype="uint8")
 
 def SetupArguments(ap):
     ap.add_argument("-o", "--output_dir",
-                    help="Path to file where ArUCo tags shuould be stored")
+                    help="Path to file where ArUCo tags should be stored")
     ap.add_argument("-i", "--input_img", type=str,
                     help="Path to folder where .png images are stored (when converting from png to obj")
-    ap.add_argument("-l", "--length", type=int,
+    ap.add_argument("-l", "--length", type=float,
                     help="Width of marker to generate in mm (pixels) [does not work if size is given]")
-    ap.add_argument("-ht", "--height", type=int,
+    ap.add_argument("-ht", "--height", type=float,
                     help="Height of marker to generate in mm (pixels) [does not work if size is given]")
 
 
@@ -92,14 +99,16 @@ def CreateObj(input_img_dir, output_dir, length, height):
     cv2.imwrite(os.path.join(output_dir, "white.png"), white_img_tag)
 
     # --Create .obj and .mtl files
-    filename = "calibration_pattern"
+    filename = os.path.basename(os.path.normpath(output_dir))
+    # filename = "calibration_pattern"
     # -Create .obj file
     f = open(os.path.join(output_dir, filename + ".obj"), "w")
     f.write(CreateObjFileString(filename, vertexes_str))
     f.close()
     # -Create .mtl file
+    image_name = os.path.basename(input_img_dir)[:-4]
     f = open(os.path.join(output_dir, filename + ".mtl"), "w")
-    f.write(CreateMtlString(filename))
+    f.write(CreateMtlString(image_name))
     f.close()
     # -Create .sdf file
     f = open(os.path.join(output_dir, filename + ".sdf"), "w")
@@ -143,7 +152,7 @@ f 4/1/6 3/2/6 2/4/6
 f 4/1/6 2/4/6 1/3/6"""
     return obj_file_str
 
-def CreateMtlString(filename):
+def CreateMtlString(image_name):
 
     mtl_file_str = f"""newmtl CubeTop
 Kd 1 1 1
@@ -152,7 +161,7 @@ d 1
 illum 1
 Ka 0 0 0
 Ks 0 0 0
-map_Kd {filename}.png
+map_Kd {image_name}.png
 
 newmtl CubeOther
 Kd 1 1 1
