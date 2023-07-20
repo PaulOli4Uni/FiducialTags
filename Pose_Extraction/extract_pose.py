@@ -5,7 +5,9 @@ import numpy as np
 from scipy.spatial.transform import Rotation
 
 # Load the video file
-video_file = 'vid_KahnPhone_cam_basic.mp4'
+# video_file = 'vid_KahnPhone_cam_basic.mp4'
+video_file = 'vid_KahnPhone_rotation.mp4'
+# video_file = 'vid_KahnPhone_rotate_displaced.mp4'
 cap = cv2.VideoCapture(video_file)
 
 ARUCO_DICT = {
@@ -61,56 +63,68 @@ while cap.isOpened():
         for i in range(len(ids)):
             # Draw a bounding box around the marker
             cv2.aruco.drawDetectedMarkers(frame, corners)
-            # cv2.aruco.drawAxis(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], marker_size)
-
             frame = cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], marker_size)
-            # cv2.aruco.drawAxis(frame, matrix_coefficients, distortion_coefficients, rvec, tvec, 0.01)
 
-            # Calculate the rotation matrix
+            marker_pos = np.array([-1,1,0])
+            marker_rot = np.array([180, 0, 0])  # In Degrees
+            R_marker = Rotation.from_euler('XYZ', marker_rot, degrees=True).as_matrix()
+
+            marker_pose = np.concatenate((R_marker, marker_pos.reshape(-1, 1)), axis=1)
+            marker_pose = np.vstack((marker_pose, [0, 0, 0, 1]))
+
+            # Calculate pose between markers and cameras
             R, _ = cv2.Rodrigues(rvecs[i])
-            r = Rotation.from_matrix(R)
-
-            # print(R)
-            print(tvecs[i])
-            marker_pos = np.zeros((3,1))
-            marker_rot = np.zeros((3,1))
-
-            cam_pos = tvecs[i].transpose() + R@marker_pos
-            cam_pos = cam_pos.transpose()
-            cam_rot = r.as_euler('xyz') + marker_rot.transpose()
-
-            #c = np.concatenate((a, b.reshape(-1, 1)), axis=1)
-            #c = np.vstack((c, [0, 0, 0, 1]))
-
-            Ex = np.concatenate((R, tvecs[i].reshape(-1, 1)), axis=1)
-            marker_pose = np.vstack((Ex, [0, 0, 0, 1]))
-            # print(cam_rot)
-
-            # # Calculate the camera pose relative to the marker
-            # marker_pose = np.hstack((R, tvecs[i]))
-            # marker_pose = np.vstack((marker_pose, [0, 0, 0, 1]))
-            camera_pose = np.linalg.inv(marker_pose)
+            pose_mark_rel_cam = np.concatenate((R, tvecs[i].reshape(-1, 1)), axis=1)
+            pose_mark_rel_cam = np.vstack((pose_mark_rel_cam, [0, 0, 0, 1]))
+            pose_cam_rel_mark = np.linalg.inv(pose_mark_rel_cam)
             #
             # # Extract the translation and rotation components
-            translation = camera_pose[:3, 3]
-            rotation = cv2.Rodrigues(camera_pose[:3, :3])[0]
-            print("Translation from linalg")
-            print(translation)
+            # print(camera_pose*marker_pos)
+            pose_cam_world = marker_pose@pose_cam_rel_mark
+            pos_cam_world = pose_cam_world[:3,3]
+            # cam_pos = camera_pose[:3, 3]
+            # cam_rot = camera_pose[:3, 3]
+            # cam_rot = np.deg2rad(cv2.RQDecomp3x3(camera_pose[:3, :3])[0])
+            rot_cam_world = np.deg2rad(cv2.RQDecomp3x3(pose_cam_world[:3, :3])[0])
 
+            # Remapping --------------------------------------
+            # R = camera_pose[:3, :3]
+            # R = Rotation.from_matrix(R)
+            # R.as_quat()
+            # num = np.sqrt(2) / 2
+            # remapping = Rotation.from_quat(np.array([num, 0, -1 * num, 0]))
+            # result = remapping * R
+            #
+            # result = result.as_euler('xyz')
+
+            # print("Remapping Result")
+            # print(np.around(result * 180 / 3.1415, decimals=2))
+            # Rotation.as_quat()
+            # Rotation.as_matrix()
+            # R = R.to_matrix(R)
+            # Remapping end ------------------------------
+
+            lbl_marker_pose = f"Marker Pose: {np.around(marker_pos, decimals=2)} Cam rot: {np.around(marker_rot, decimals=2)}"  # Print in Deg
+            lbl_marker_rel_cam = f"Marker relative Cam: {np.around(pose_mark_rel_cam[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_mark_rel_cam[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
+            lbl_cam_rel_marker = f"Cam relative Marker: {np.around(pose_cam_rel_mark[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_cam_rel_mark[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
+            lbl_cam_glob_pose = f"Global Cam Pos: {np.around(pos_cam_world, decimals=2)} Cam rot: {np.rad2deg(np.around(rot_cam_world, decimals=2))}"
+
+            print("New Frame (all angles in deg")
+            print(lbl_marker_pose)
+            print(lbl_marker_rel_cam)
+            print(lbl_cam_rel_marker)
+            print(lbl_cam_glob_pose)
 
             # Display the tag ID and pose information
             tag_id = ids[i][0]
-            # label = f"Tag ID: {tag_id}, Pose: T={translation}, R={rotation}"
-            label = f"Tag ID: {tag_id}, Pose: T={marker_pos}, R={marker_rot}"
-            cv2.putText(frame, label, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+            cv2.putText(frame, lbl_marker_pose, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+            cv2.putText(frame, lbl_cam_glob_pose, (0, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
 
-            label = f"Cam Pos: {cam_pos} Cam rot: {cam_rot}"
-            cv2.putText(frame, label, (0, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
 
     # Show the frame
     cv2.imshow('Pose Estimation', frame)
-    time.sleep(1)
-
+    time.sleep(0.5)
+    #
 
     if cv2.waitKey(1) & 0xFF == ord('q'):
         break
