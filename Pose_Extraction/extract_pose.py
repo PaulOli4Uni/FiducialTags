@@ -11,9 +11,9 @@ from scipy.spatial.transform import Rotation
 
 # video_file = 'vid_KahnPhone_new_cam_basic.mp4'
 # video_file = 'lin.mp4'
-# video_file = 'rool_and_pitch.mp4'
+video_file = 'rool_and_pitch.mp4'
 # video_file = 'rotation_new_marker.mp4'
-video_file = 'rotation_new_marker_new.mp4'
+# video_file = 'rotation_new_marker_new.mp4'
 
 cap = cv2.VideoCapture(video_file)
 
@@ -72,7 +72,7 @@ while cap.isOpened():
             cv2.aruco.drawDetectedMarkers(frame, corners)
             frame = cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], marker_size)
 
-            marker_pos = np.array([0, 0, 0])
+            marker_pos = np.array([5, 7, 10])
             marker_rot = np.array([0, 0, 0])  # In Degrees
             R_marker = Rotation.from_euler('XYZ', marker_rot, degrees=True).as_matrix()
 
@@ -114,7 +114,7 @@ while cap.isOpened():
             t_remap = np.vstack((t_remap, [0, 0, 0, 1]))
 
             remap_pose = marker_pose  @ (t_remap @ pose_cam_rel_mark)
-            remap_pose = t_remap @ (marker_pose @ pose_cam_rel_mark)
+            # remap_pose = t_remap @ (marker_pose @ pose_cam_rel_mark)
             remap_rot = np.around(Rotation.from_matrix(remap_pose[:3,:3]).as_euler('XYZ', degrees=True))
             remap_rot[2] = remap_rot[2] + 90
             if remap_rot[2] > 180:
