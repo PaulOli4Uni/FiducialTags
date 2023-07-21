@@ -297,7 +297,7 @@ def CreateSDFFileString(filename):
         <sdf version="1.5">
         <model name="{filename}">
               <link name="Main">
-                <pose>0 0 0 0 0 0</pose>
+                <pose>0 0 0 0 0 -1.570796327</pose>
                     <visual name="{filename}_Visual">
                         <pose>0 0 {2*width} 0 0 0</pose>
                         <geometry>
