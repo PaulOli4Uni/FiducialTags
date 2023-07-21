@@ -8,8 +8,10 @@ gz service -s /boxes_full_2d --timeout 2000 --reqtype gz.msgs.VideoRecord --rept
 Stop Recording
 gz service -s /boxes_full_2d --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Boolean --req 'start:false, save_filename:"name.mp4"'
 
-Running single pose instruction
-# gz topic -t /box/pos_contr -m gz.msgs.StringMsg -p 'data:"0,0,2,170,50,170,1"'
+Running single pose instruction (note that topic will not display when listed from gazebo.)
+pose_msg: 0,0,2,170,50,170,1
+gz topic -t /model/{model_name}/pos_contr -m gz.msgs.StringMsg -p 'data:"{pose_msg}"'
+	gz topic -t /model/camera/pos_contr -m gz.msgs.StringMsg -p 'data:"0,0,2,170,50,170,1"'
 
 Running pose_movement file
 gz topic -t /file -m gz.msgs.StringMsg -p 'data:"/home/stb21753492/Sim_Markers/World_1Marker/pose_file2.txt"'
