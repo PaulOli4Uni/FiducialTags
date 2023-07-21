@@ -11,7 +11,9 @@ from scipy.spatial.transform import Rotation
 
 # video_file = 'vid_KahnPhone_new_cam_basic.mp4'
 # video_file = 'lin.mp4'
-video_file = 'rool_and_pitch.mp4'
+# video_file = 'rool_and_pitch.mp4'
+# video_file = 'rotation_new_marker.mp4'
+video_file = 'rotation_new_marker_new.mp4'
 
 cap = cv2.VideoCapture(video_file)
 
