@@ -13,8 +13,10 @@ pose_msg: 0,0,2,170,50,170,1
 gz topic -t /model/{model_name}/pos_contr -m gz.msgs.StringMsg -p 'data:"{pose_msg}"'
 	gz topic -t /model/camera/pos_contr -m gz.msgs.StringMsg -p 'data:"0,0,2,170,50,170,1"'
 
-Running pose_movement file
-gz topic -t /file -m gz.msgs.StringMsg -p 'data:"/home/stb21753492/Sim_Markers/World_1Marker/pose_file2.txt"'
+Running pose_movement file (note that topic will not display when listed from gazebo.)
+pose file: /home/stb21753492/Sim_Markers/World_1Marker/pose_file2.txt
+gz topic -t /model/{model_name}/file_pos_contr -m gz.msgs.StringMsg -p 'data:"{pose_file}"'
+	gz topic -t /model/camera/file_pos_contr -m gz.msgs.StringMsg -p 'data:"/home/stb21753492/Sim_Markers/World_1Marker/pose_file2.txt"'
 
 Storing Pose information of camera
 gz service -s /pose_to_file --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Int32 --req 'start:true, save_filename:"name.txt"'
