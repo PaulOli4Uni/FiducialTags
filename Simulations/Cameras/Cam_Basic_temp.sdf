@@ -89,7 +89,7 @@
 
                 <inertial>
                     <mass>0.1</mass>
-                    <pose>0 0 -0.015 0 -1.571 0</pose>
+                    <pose>0 0 -0.015 0 0 0</pose>
                     <inertia>
                         <ixx>0.1</ixx>
                         <iyy>0.1</iyy>
