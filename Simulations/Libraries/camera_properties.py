@@ -1,30 +1,8 @@
-from dataclasses import dataclass
 from typing import List
+from Simulations.Libraries.data_classes import dc_pose, dc_camera_properties
 
 
-@dataclass()
-class CamPosition:
-    X: float
-    Y: float
-    Z: float
-    r: float
-    p: float
-    y: float
-
-
-@dataclass()
-class CameraProperties:
-    topic_name: str
-    pose: CamPosition
-    horizontal_fov: float
-    img_width: int
-    img_height: int
-    clip_near: float
-    clip_far: float
-    lens_type: str
-    cutoff_angle: float
-    framerate: int
-
+CameraProperties = dc_camera_properties.CameraProperties
 
 class CameraLoader:
     def __init__(self, file_location: str):
@@ -57,7 +35,7 @@ class CameraLoader:
                 self.camera_properties.append(
                     CameraProperties(
                         topic_name=properties['topic_name'],
-                        pose=CamPosition(
+                        pose=dc_pose.pose(
                             X=float(properties['pose_X']),
                             Y=float(properties['pose_Y']),
                             Z=float(properties['pose_Z']),

@@ -14,6 +14,8 @@ from scipy.spatial.transform import Rotation
 video_file = 'rool_and_pitch.mp4'
 # video_file = 'rotation_new_marker.mp4'
 # video_file = 'rotation_new_marker_new.mp4'
+video_file = 'fast.mp4'
+video_file = 'mult_markers.mp4'
 
 cap = cv2.VideoCapture(video_file)
 
@@ -67,7 +69,10 @@ while cap.isOpened():
         # Estimate the pose of each marker
         rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, marker_size, camera_matrix, dist_coeffs)
 
-        for i in range(len(ids)):
+        for i, id in enumerate(ids):
+
+
+
             # Draw a bounding box around the marker
             cv2.aruco.drawDetectedMarkers(frame, corners)
             frame = cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], marker_size)
@@ -89,45 +94,24 @@ while cap.isOpened():
             # print(camera_pose*marker_pos)
             pose_cam_world = marker_pose@pose_cam_rel_mark
             pos_cam_world = pose_cam_world[:3,3]
-            # cam_pos = camera_pose[:3, 3]
-            # cam_rot = camera_pose[:3, 3]
-            # cam_rot = np.deg2rad(cv2.RQDecomp3x3(camera_pose[:3, :3])[0])
+
             rot_cam_world = np.deg2rad(cv2.RQDecomp3x3(pose_cam_world[:3, :3])[0])
 
-            # Remapping --------------------------------------
-            # R = camera_pose[:3, :3]
-            # R = Rotation.from_matrix(R)
-            # R.as_quat()
-            # num = np.sqrt(2) / 2
-            # remapping = Rotation.from_quat(np.array([num, 0, -1 * num, 0]))
-            # result = remapping * R
-            #
-            # result = result.as_euler('xyz')
 
-            # print("Remapping Result")
-            # print(np.around(result * 180 / 3.1415, decimals=2))
-            # Rotation.as_quat()
-            # Rotation.as_matrix()
-            # R = R.to_matrix(R)
             R_remap = np.array([[0, 1, 0], [-1, 0, 0], [0, 0, 1]])
             t_remap = np.concatenate((R_remap, np.array([[0],[0],[0]])), axis=1)
             t_remap = np.vstack((t_remap, [0, 0, 0, 1]))
 
             remap_pose = marker_pose  @ (t_remap @ pose_cam_rel_mark)
-            # remap_pose = t_remap @ (marker_pose @ pose_cam_rel_mark)
+
             remap_rot = np.around(Rotation.from_matrix(remap_pose[:3,:3]).as_euler('XYZ', degrees=True))
             remap_rot[2] = remap_rot[2] + 90
             if remap_rot[2] > 180:
                 remap_rot[2] = remap_rot[2] - 360
-            # remap_pose = marker_pose @ np.linalg.inv(t_remap@pose_mark_rel_cam)
-
-            # print(remap_pose[:3,:3])
-            # print(np.around(remap_pose[:3,3], decimals=2))
-            # print(np.around(Rotation.from_matrix(remap_pose[:3,:3]).as_euler('XYZ', degrees=True)))
 
             # Remapping end ------------------------------
 
-            lbl_marker_pose = f"Marker Pose: {np.around(marker_pos, decimals=2)} Cam rot: {np.around(marker_rot, decimals=2)}"  # Print in Deg
+            lbl_marker_pose = f"Marker Id: {id}, Pose: {np.around(marker_pos, decimals=2)} Cam rot: {np.around(marker_rot, decimals=2)}"  # Print in Deg
             lbl_marker_rel_cam = f"Marker relative Cam: {np.around(pose_mark_rel_cam[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_mark_rel_cam[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
             lbl_cam_rel_marker = f"Cam relative Marker: {np.around(pose_cam_rel_mark[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_cam_rel_mark[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
             lbl_cam_glob_pose = f"Global Cam Pos: {np.around(pos_cam_world, decimals=2)} Cam rot: {np.rad2deg(np.around(rot_cam_world, decimals=2))}"

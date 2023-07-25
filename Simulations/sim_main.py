@@ -9,12 +9,13 @@ import time
 
 import pandas as pd
 import numpy as np
-from dataclasses import dataclass
 import subprocess
 import os
 from scipy.spatial.transform import Rotation
 import shutil
 from Libraries import camera_properties
+
+from Simulations.Libraries.data_classes import dc_pose, dc_marker, dc_camera, dc_model, dc_test_main_data, dc_test_config_data
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
 parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights", "models"}
@@ -22,50 +23,12 @@ parameters_main = {"test_files_path", "world_file"}
 
 tmp_movement_file_dir = 'tmp_files/tmp_file.txt'
 # ------------ DATA CLASSES ------------
-@dataclass()
-class dc_pose:
-    X: float
-    Y: float
-    Z: float
-    r: float
-    p: float
-    y: float
-
-
-@dataclass()
-class dc_marker:
-    marker_file: str
-    pose: dc_pose
-
-@dataclass()
-class dc_model:
-    model_file: str
-    pose: dc_pose
-
-@dataclass()
-class dc_camera:
-    camera_file: str
-    pose: dc_pose
-    config: camera_properties
-
-
-@dataclass()
-class dc_test_main_data:
-    test_files_path: str
-    world_file: str
-
-
-@dataclass()
-class dc_test_config_data:
-    test_name: str
-    movement_file: str
-    video_file: bool
-    gz_pose_file: bool
-    vid_pose_file: bool
-    cameras: [dc_camera]
-    markers: [dc_marker]
-    lights: []  # todo: Add lights data class
-    models: [dc_model]
+dc_pose = dc_pose.pose
+dc_marker = dc_marker.marker
+dc_model = dc_model.model
+dc_camera = dc_camera.camera
+dc_test_main_data = dc_test_main_data.test_main_data
+dc_test_config_data = dc_test_config_data.test_config_data
 
 
 # ------------ DATA IMPORT ------------
@@ -602,7 +565,7 @@ if __name__ == '__main__':
     test_path = os.path.dirname(os.path.abspath(__file__))
     # Setup and import data
 
-    filename = test_path + "/Test.xlsx"
+    filename = test_path + "/Tests/Test.xlsx"
     if not CheckCorrectExtention(filename, ".xlsx"):
         print("[ERR] Incorrect file extension given for .xlsx")
         sys.exit()

@@ -81,7 +81,7 @@
             </link>
 
 
-            <link name="Front">
+            <link name="Lens">
 
                 <!-- Vertically offset the top cylinder by the length of the bottom
                     cylinder and half the length of this cylinder. -->
@@ -175,7 +175,7 @@
             <joint type="fixed" name="main_and_front">
                 <pose>0 0 0.015 0 0 0</pose>
                 <parent>Main</parent>
-                <child>Front</child>
+                <child>Lens</child>
             </joint>
         
             <joint type="fixed" name="main_and_top_right">
