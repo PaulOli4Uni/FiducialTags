@@ -7,7 +7,9 @@ xx_name -> Refers to the name of the file (variable). Thus -> NO Extension in th
 import pandas as pd
 import numpy as np
 import os
+import re
 from Simulations.Libraries import camera_properties, directory_mappings
+
 
 from Simulations.Libraries.data_classes import dc_pose, dc_marker, dc_camera, dc_model, dc_test_main_data, \
     dc_test_config_data
@@ -247,7 +249,13 @@ def _ImportMarkers(markers, main_files_path, sheet, start_index, end_index):
             else:
                 pose = dc_pose(pose_list[0], pose_list[1], pose_list[2], pose_list[3], pose_list[4], pose_list[5])
 
-        marker = dc_marker(marker_file, pose)
+
+        parts = marker_file[:-4].split('_')
+        dictionary = '_'.join(parts[:3])
+        size = int(parts[3][1:])/1000 # Size in meters
+        id_num = int(parts[4][2:])
+
+        marker = dc_marker(marker_file, pose, dictionary, size, id_num)
         markers.append(marker)
 
     return True

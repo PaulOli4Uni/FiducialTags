@@ -6,7 +6,6 @@ import shutil
 
 from Simulations.Libraries import directory_mappings
 
-
 tmp_movement_file_dir = 'tmp_files/tmp_file.txt'
 
 def RunSim(main_config, tests_config):
@@ -15,7 +14,7 @@ def RunSim(main_config, tests_config):
     for test_config in tests_config:
         world_name = main_config.world_file[:-4]
         test_name = test_config.test_name
-        print("[INFO] Strating test: " + test_name)
+        print("[INFO] Starting test: " + test_name)
         test_dir = os.path.join(main_config.test_files_path, "Tests", test_config.test_name)
         print("[INFO] Making directory for test results at: \'" + test_dir + "\'")
         # os.makedirs(test_dir)
@@ -47,7 +46,7 @@ def RunSim(main_config, tests_config):
 
         while True:
             model_count = 0
-            for char in result.stdout:  # Command output presents models with a '-' in buller format
+            for char in result.stdout:  # Command output presents models with a '-' in bullet format
                 if char == '-':
                     model_count += 1
 
@@ -186,7 +185,7 @@ def LoadPoseMovementFile(main_path, movement_file):
         tmp_filename = tmp_movement_file_dir
         tmp_lines = lines[1:]
 
-        with open(tmp_filename, 'w') as tmp_file:
+        with open(os.path.join(main_path, tmp_filename), 'w') as tmp_file:
             tmp_file.writelines(tmp_lines)
 
         # print(f"First line stored: {first_line}")
@@ -236,7 +235,6 @@ def StartCameraVideoRecord(model_name, video_file):
 
     camera_rcd_start_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
                      f"gz.msgs.Boolean --req \'start:true, save_filename:\"{video_file}\"\'"
-    print(camera_rcd_start_cmd)
     result = subprocess.run(camera_rcd_start_cmd, shell=True, capture_output=True, text=True)
 
 def StopCameraVideoRecord(model_name, video_file):
