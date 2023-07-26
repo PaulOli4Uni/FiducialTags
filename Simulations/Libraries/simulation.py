@@ -14,7 +14,8 @@ def RunSim(main_config, tests_config):
 
     for test_config in tests_config:
         world_name = main_config.world_file[:-4]
-        print("[INFO] Strating test: " + test_config.test_name)
+        test_name = test_config.test_name
+        print("[INFO] Strating test: " + test_name)
         test_dir = os.path.join(main_config.test_files_path, "Tests", test_config.test_name)
         print("[INFO] Making directory for test results at: \'" + test_dir + "\'")
         # os.makedirs(test_dir)
@@ -27,15 +28,15 @@ def RunSim(main_config, tests_config):
         # Load Markers, Cameras and Models
         print("[INFO] Spawning Markers and Cameras")
         for marker in test_config.markers:
-            LoadMarker(world_name, main_config.test_files_path, marker)
+            LoadMarker(world_name, test_name, main_config.test_files_path, marker)
 
         for camera in test_config.cameras:
-            LoadCamera(world_name, main_config.test_files_path, camera)
+            LoadCamera(world_name, test_name, main_config.test_files_path, camera)
 
         for model in test_config.models:
             model_file = model.model_file
             path_to_model_file = directory_mappings.FilePathToModel(main_config.test_files_path, model_file)
-            LoadModel(world_name, path_to_model_file, model_file[:-4], model.pose)
+            LoadModel(world_name, test_name, path_to_model_file, model_file[:-4], model.pose)
 
 
         # Check that all models have loaded
@@ -60,10 +61,10 @@ def RunSim(main_config, tests_config):
         if pose_message:
             print("[INFO] Moving camera(s) to starting position")
             for camera in test_config.cameras:
-                RunPoseString(camera.camera_file[:-4], pose_message)
+                RunPoseString(test_name, camera.camera_file[:-4], pose_message)
 
             PlaySim(world_name)
-            WaitMovementComplete(test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
+            WaitMovementComplete(test_name, test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
             PauseSim(world_name)
 
         print("[INFO] Running movement_file")
@@ -78,19 +79,19 @@ def RunSim(main_config, tests_config):
 
             if test_config.gz_pose_file:
                 gz_pose_file = f"gz_pose_{camera_name}.txt"
-                StartCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
+                StartCameraPoseCapture(test_name, camera_name, os.path.join(test_dir, gz_pose_file))
 
-            RunPoseFile(camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
+            RunPoseFile(test_name, camera_name, os.path.join(main_config.test_files_path, tmp_movement_file_dir))
 
         PlaySim(world_name)
-        WaitMovementComplete(test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
+        WaitMovementComplete(test_name, test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
         PauseSim(world_name)
         print("[INFO] Movement_file finished")
 
         # Remove Markers, Cameras and Models
         print("[INFO] Removing Markers and Cameras")
         for marker in test_config.markers:
-            RemoveModel(world_name, marker.marker_file[:-4])
+            RemoveModel(world_name, test_name, marker.marker_file[:-4])
         for camera in test_config.cameras:
             camera_name = camera.camera_file[:-4]
 
@@ -104,45 +105,45 @@ def RunSim(main_config, tests_config):
 
             if test_config.gz_pose_file:
                 gz_pose_file = f"gz_pose_{camera_name}.txt"
-                StopCameraPoseCapture(camera_name, os.path.join(test_dir, gz_pose_file))
+                StopCameraPoseCapture(test_name, camera_name, os.path.join(test_dir, gz_pose_file))
 
-            RemoveModel(world_name, camera_name)
+            RemoveModel(world_name, test_name, camera_name)
 
         for model in test_config.models:
-            RemoveModel(world_name, model.model_file[:-4])
+            RemoveModel(world_name, test_name, model.model_file[:-4])
         # os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))  # Remove tmp_movement_file
 
     return True
 
-def LoadMarker(world_name, main_path, marker_dc):
+def LoadMarker(world_name, test_name, main_path, marker_dc):
 
     path_to_marker_file = directory_mappings.FilePathToMarker(main_path, marker_dc.marker_file)
-    LoadModel(world_name, path_to_marker_file, marker_dc.marker_file[:-4], marker_dc.pose)
+    LoadModel(world_name, test_name, path_to_marker_file, marker_dc.marker_file[:-4], marker_dc.pose)
 
-def LoadCamera(world_name, main_path, camera_dc):
+def LoadCamera(world_name, test_name, main_path, camera_dc):
 
     camera_name = camera_dc.camera_file[:-4]
     path_to_camera_file = os.path.join(main_path, "Cameras", camera_dc.camera_file)
 
-    LoadModel(world_name, path_to_camera_file, camera_name, camera_dc.pose)
+    LoadModel(world_name, test_name, path_to_camera_file, camera_name, camera_dc.pose)
 
-def LoadModel(world_name, path_to_model_inc_extension, model_name, model_pose):
+def LoadModel(world_name, test_name, path_to_model_inc_extension, model_name, model_pose):
 
     rot = Rotation.from_euler('xyz', [model_pose.r, model_pose.p, model_pose.y], degrees=False)
     rot_quart = rot.as_quat()
 
     spawn_cmd = f"gz service -s /world/{world_name}/create --reqtype gz.msgs.EntityFactory --reptype gz.msgs.Boolean " \
                 f"--timeout 1000 --req \'sdf_filename: \"{path_to_model_inc_extension}\", " \
-                f"name: \"{model_name}\", pose: {{position: {{x:{model_pose.X},y:{model_pose.Y},z:{model_pose.Z}}}, " \
+                f"name: \"{CombineTestandObjectName(test_name, model_name)}\", pose: {{position: {{x:{model_pose.X},y:{model_pose.Y},z:{model_pose.Z}}}, " \
                 f"orientation: {{x:{rot_quart[0]},y:{rot_quart[1]},z:{rot_quart[2]},w:{rot_quart[3]}}}}}\'"
 
     result = subprocess.run(spawn_cmd, shell=True, capture_output=True, text=True)
     # print(result)
 
-def RemoveModel(world_name, model_name):
+def RemoveModel(world_name, test_name, model_name):
 
     remove_cmd = f"gz service -s /world/{world_name}/remove --reqtype gz.msgs.Entity --reptype gz.msgs.Boolean " \
-                 f"--timeout 1000 --req 'name: \"{model_name}\", type: 2'"
+                 f"--timeout 1000 --req 'name: \"{CombineTestandObjectName(test_name, model_name)}\", type: 2'"
     result = subprocess.run(remove_cmd, shell=True, capture_output=True, text=True)
     # print(result)
 
@@ -206,27 +207,27 @@ def LoadPoseMovementFile(main_path, movement_file):
         # print(f"Temporary file '{tmp_filename}' created.")
         return False
 
-def RunPoseString(model_name, pose_msg):
+def RunPoseString(test_name, model_name, pose_msg):
 
-    pose_cmd = f"gz topic -t /model/{model_name}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
+    pose_cmd = f"gz topic -t /model/{CombineTestandObjectName(test_name, model_name)}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
     result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
 
-def RunPoseFile(model_name, pose_file):
+def RunPoseFile(test_name, model_name, pose_file):
 
-    pose_cmd = f"gz topic -t /model/{model_name}/file_pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_file}\"\'"
+    pose_cmd = f"gz topic -t /model/{CombineTestandObjectName(test_name, model_name)}/file_pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_file}\"\'"
     result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
 
-def StartCameraPoseCapture(model_name, gz_pose_file):
+def StartCameraPoseCapture(test_name, model_name, gz_pose_file):
 
-    pose_storage_start_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
+    pose_storage_start_cmd = f"gz service -s /model/{CombineTestandObjectName(test_name,model_name)}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
                        f"--reptype gz.msgs.Int32 --req \'start:true, stop:false, save_filename:\"{gz_pose_file}\"\'"
     # print(pose_storage_start_cmd)
     result = subprocess.run(pose_storage_start_cmd, shell=True, capture_output=True, text=True)
     # gz service -s /pose_to_file --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype gz.msgs.Int32 --req 'start:true, save_filename:"name.txt"'
 
-def StopCameraPoseCapture(model_name, gz_pose_file):
+def StopCameraPoseCapture(test_name, model_name, gz_pose_file):
 
-    pose_storage_stop_cmd = f"gz service -s /model/{model_name}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
+    pose_storage_stop_cmd = f"gz service -s /model/{CombineTestandObjectName(test_name, model_name)}/PoseToFile --timeout 2000 --reqtype gz.msgs.VideoRecord " \
                        f"--reptype gz.msgs.Int32 --req \'start:false, stop:true, save_filename:\"{gz_pose_file}\"\'"
     # print(pose_storage_stop_cmd)
     result = subprocess.run(pose_storage_stop_cmd, shell=True, capture_output=True, text=True)
@@ -235,6 +236,7 @@ def StartCameraVideoRecord(model_name, video_file):
 
     camera_rcd_start_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
                      f"gz.msgs.Boolean --req \'start:true, save_filename:\"{video_file}\"\'"
+    print(camera_rcd_start_cmd)
     result = subprocess.run(camera_rcd_start_cmd, shell=True, capture_output=True, text=True)
 
 def StopCameraVideoRecord(model_name, video_file):
@@ -243,9 +245,9 @@ def StopCameraVideoRecord(model_name, video_file):
                      f"gz.msgs.Boolean --req \'start:false, save_filename:\"{video_file}\"\'"
     result = subprocess.run(camera_rcd_stop_cmd, shell=True, capture_output=True, text=True)
 
-def WaitMovementComplete(model_name):
+def WaitMovementComplete(test_name, model_name):
 
-    wait_cmd = f"gz topic -e -t /model/{model_name}/move_fin "
+    wait_cmd = f"gz topic -e -t /model/{CombineTestandObjectName(test_name, model_name)}/move_fin "
     process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE)
 
     movement_command_not_received = True
@@ -257,3 +259,6 @@ def WaitMovementComplete(model_name):
         if output:
             process.terminate()
             movement_command_not_received = False
+
+def CombineTestandObjectName(test_name, object_name):
+    return test_name + "_" + object_name

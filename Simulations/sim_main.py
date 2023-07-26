@@ -3,7 +3,6 @@ Standard used in this library.
 xx_file -> refers to the variable file. Thus -> Extension is included
 xx_name -> Refers to the name of the file (variable). Thus -> NO Extension in the name
 """
-
 import sys
 import os
 from Libraries import import_excel, simulation
@@ -22,3 +21,4 @@ if __name__ == '__main__':
 
     print("[INFO] Starting Simulations")
     simulation.RunSim(main_config, tests_config)
+
