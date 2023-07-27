@@ -1,6 +1,8 @@
 import time
 import subprocess
 import os
+
+import numpy as np
 from scipy.spatial.transform import Rotation
 import shutil
 
@@ -178,18 +180,24 @@ def LoadPoseMovementFile(main_path, movement_file):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    first_line = lines[0].rstrip()
+    i = 0 #  Used to keep track of the first line (dep on 'degree=xxx' present or not in text file)
+    first_line = lines[i].strip()
+    # See if conversion to degrees is necesarry
+    degrees = False
+    if first_line.startswith('degrees='):
+        degrees_str = first_line.split('=')[1].strip().lower()
+        if degrees_str == 'true':
+            degrees = True
+        i = 1
+
+    first_line = lines[i].rstrip()
     last_number = float(first_line.split(',')[-1])
 
     if last_number == 0.0:
         tmp_filename = tmp_movement_file_dir
-        tmp_lines = lines[1:]
+        tmp_lines = lines[i+1:]
 
-        with open(os.path.join(main_path, tmp_filename), 'w') as tmp_file:
-            tmp_file.writelines(tmp_lines)
-
-        # print(f"First line stored: {first_line}")
-        # print(f"Temporary file '{tmp_filename}' created.")
+        WritePoseTmpfile(main_path, tmp_filename, tmp_lines, degrees)
 
         # Change time of last line to 1 second before returning pose command
         initial_pose_cmd = first_line.split(',')
@@ -197,6 +205,10 @@ def LoadPoseMovementFile(main_path, movement_file):
         initial_pose_cmd[last_number_index] = '1'
 
         initial_pose_cmd = ','.join(initial_pose_cmd)
+
+        if not degrees:
+            initial_pose_cmd = ConvertLineRad2Deg(initial_pose_cmd)
+
         return initial_pose_cmd
     else:
         tmp_filename = 'tmp_file.txt'
@@ -205,6 +217,23 @@ def LoadPoseMovementFile(main_path, movement_file):
 
         # print(f"Temporary file '{tmp_filename}' created.")
         return False
+
+def WritePoseTmpfile(main_path, tmp_filename, lines, degrees):
+
+    with open(os.path.join(main_path, tmp_filename), 'w') as tmp_file:
+
+        if degrees: #  No changes have to be made
+            tmp_file.writelines(lines)
+        else: #  Convert to degrees
+            for line in lines:
+                tmp_file.write(ConvertLineRad2Deg(line) + '\n')
+
+def ConvertLineRad2Deg(line):
+    values = line.strip().split(',')
+    values[3] = str(np.rad2deg(float(values[3])))
+    values[4] = str(np.rad2deg(float(values[4])))
+    values[5] = str(np.rad2deg(float(values[5])))
+    return ','.join(values)
 
 def RunPoseString(test_name, model_name, pose_msg):
 

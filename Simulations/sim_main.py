@@ -21,7 +21,7 @@ if __name__ == '__main__':
     if not success_import:
         sys.exit()
 
-    # print("------------------ \n[INFO] Starting Simulations \n------------------ ")
+    print("------------------ \n[INFO] Starting Simulations \n------------------ ")
     # simulation.RunSim(main_config, tests_config)
 
     print("------------------ \n [INFO] Extracting Pose from Video  \n------------------")

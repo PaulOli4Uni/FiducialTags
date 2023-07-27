@@ -50,6 +50,8 @@ def ExtractPose(main_config, tests_config):
             size = marker.size
             pose = marker.pose
 
+            print(id)
+
             if dictionary not in marker_info_by_dict:
                 marker_info_by_dict[dictionary] = []
 
@@ -105,20 +107,20 @@ def _ExtractFromVideo(video_file, marker_info_by_dict):
 
             if len(corners) > 0:
                 for i, id in enumerate(ids):
-                    print(float(id))
+
                     # Estimate the pose of each marker
                     marker_size, pose = get_size_and_pose(aruco_dict_str, float(id), marker_info_by_dict)
-                    print(marker_info_by_dict)
-                    print(marker_size)
+
                     rvecs, tvecs, _ = cv2.aruco.estimatePoseSingleMarkers(corners, marker_size, camera_matrix, dist_coeffs)
 
                     # Draw a bounding box around the marker
                     cv2.aruco.drawDetectedMarkers(frame, corners)
                     frame = cv2.drawFrameAxes(frame, camera_matrix, dist_coeffs, rvecs[i], tvecs[i], marker_size)
 
-                    marker_pos = np.array([5, 7, 10])
-                    marker_rot = np.array([0, 0, 0])  # In Degrees
-                    R_marker = Rotation.from_euler('XYZ', marker_rot, degrees=True).as_matrix()
+
+                    marker_pos = np.array([pose.X, pose.Y, pose.Z])
+                    marker_rot = np.array([pose.r, pose.p, pose.y])  # In Radians
+                    R_marker = Rotation.from_euler('XYZ', marker_rot, degrees=False).as_matrix()
 
                     marker_pose = np.concatenate((R_marker, marker_pos.reshape(-1, 1)), axis=1)
                     marker_pose = np.vstack((marker_pose, [0, 0, 0, 1]))
@@ -154,24 +156,23 @@ def _ExtractFromVideo(video_file, marker_info_by_dict):
                     lbl_marker_rel_cam = f"Marker relative Cam: {np.around(pose_mark_rel_cam[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_mark_rel_cam[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
                     lbl_cam_rel_marker = f"Cam relative Marker: {np.around(pose_cam_rel_mark[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_cam_rel_mark[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
                     lbl_cam_glob_pose = f"Global Cam Pos: {np.around(pos_cam_world, decimals=2)} Cam rot: {np.rad2deg(np.around(rot_cam_world, decimals=2))}"
-                    lbl_remap = f"Remapped Cam Pos: {np.around(remap_pose[:3,3], decimals=2)} Cam rot: {remap_rot}"
+                    lbl_remap = f"Marker Id: {aruco_dict_str + str(id)} Remapped Cam Pos: {np.around(remap_pose[:3,3], decimals=2)} Cam rot: {remap_rot}"
 
                     print("New Frame (all angles in deg")
-                    print(lbl_marker_pose)
-                    print(lbl_marker_rel_cam)
-                    print(lbl_cam_rel_marker)
-                    print(lbl_cam_glob_pose)
-                    print(lbl_remap)
+                    # print(lbl_marker_pose)
+                    # print(lbl_marker_rel_cam)
+                    # print(lbl_cam_rel_marker)
+                    # print(lbl_cam_glob_pose)
+                    # print(lbl_remap)
 
                     # Display the tag ID and pose information
-                    tag_id = ids[i][0]
                     cv2.putText(frame, lbl_marker_pose, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
                     # cv2.putText(frame, lbl_cam_glob_pose, (0, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
-                    cv2.putText(frame, lbl_remap, (0, 100*(idx+1)*(i+1)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+                    cv2.putText(frame, lbl_remap, (0, 25*(idx+1)*(i+1)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
 
             # Show the frame
             cv2.imshow('Pose Estimation', frame)
-            time.sleep(0.5)
+            time.sleep(0.25)
         #
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -184,6 +185,7 @@ def _ExtractFromVideo(video_file, marker_info_by_dict):
 def get_size_and_pose(dictionary, id, marker_info_by_dict):
     if dictionary in marker_info_by_dict:
         marker_info_list = marker_info_by_dict[dictionary]
+        print(marker_info_list)
         for marker_id, size, pose in marker_info_list:
             if marker_id == id:
                 return size, pose

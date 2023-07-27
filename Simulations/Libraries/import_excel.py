@@ -255,7 +255,7 @@ def _ImportMarkers(markers, main_files_path, sheet, start_index, end_index):
         size = int(parts[3][1:])/1000 # Size in meters
         id_num = int(parts[4][2:])
 
-        marker = dc_marker(marker_file, pose, dictionary, size, id_num)
+        marker = dc_marker(marker_file, pose, dictionary, id_num, size)
         markers.append(marker)
 
     return True
