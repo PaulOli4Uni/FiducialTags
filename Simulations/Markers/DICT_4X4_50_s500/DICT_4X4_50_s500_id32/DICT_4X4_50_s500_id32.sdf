@@ -1,0 +1,19 @@
+<?xml version="1.0" ?>
+        <sdf version="1.5">
+        <model name="DICT_4X4_50_s500_id32">
+              <link name="Main">
+                <pose>0 0 0 0 0 -1.570796327</pose>
+                    <visual name="DICT_4X4_50_s500_id32_Visual">
+                        <pose>0 0 0.01 0 0 0</pose>
+                        <geometry>
+                            <mesh>
+                                <scale>1 1 1</scale>
+                                <uri>DICT_4X4_50_s500_id32.obj</uri>
+                            </mesh>
+                        </geometry>
+                    </visual>
+                    <gravity>1</gravity>
+                    <velocity_decay/>
+                    <self_collide>0</self_collide>
+              </link>
+          </model></sdf>
