@@ -22,7 +22,7 @@ if __name__ == '__main__':
         sys.exit()
 
     print("------------------ \n[INFO] Starting Simulations \n------------------ ")
-    # simulation.RunSim(main_config, tests_config)
+    simulation.RunSim(main_config, tests_config)
 
     print("------------------ \n [INFO] Extracting Pose from Video  \n------------------")
     extract_pose.ExtractPose(main_config, tests_config)
