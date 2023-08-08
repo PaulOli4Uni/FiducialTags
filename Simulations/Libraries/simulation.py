@@ -180,7 +180,7 @@ def LoadPoseMovementFile(main_path, movement_file):
     with open(file_path, 'r') as file:
         lines = file.readlines()
 
-    i = 0 #  Used to keep track of the first line (dep on 'degree=xxx' present or not in text file)
+    i = 0  # Used to keep track of the first line (dep on 'degree=xxx' present or not in text file)
     first_line = lines[i].strip()
     # See if conversion to degrees is necesarry
     degrees = False
@@ -226,7 +226,7 @@ def WritePoseTmpfile(main_path, tmp_filename, lines, degrees):
             tmp_file.writelines(lines)
         else: #  Convert to degrees
             for line in lines:
-                tmp_file.write(ConvertLineRad2Deg(line) + '\n')
+                tmp_file.write(ConvertLineRad2Deg(line))
 
 def ConvertLineRad2Deg(line):
     values = line.strip().split(',')

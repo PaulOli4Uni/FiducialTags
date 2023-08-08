@@ -92,6 +92,18 @@ def _ExtractFromVideo(video_file, video_name, marker_info_by_dict, marker_files)
     # Define the distortion coefficients (replace with your own values)
     dist_coeffs = np.zeros((4, 1), dtype=np.float32)
 
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    output_video_path = video_file[:-4] + "_edit.mp4"  # Specify the desired output video path
+    framerate = float(24)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    frame = (1280, 720)
+    # Width then height
+    output_video = cv2.VideoWriter(output_video_path, fourcc, framerate, (frame[0], frame[1]))
+
+
     while cap.isOpened():
 
         ret, frame = cap.read()
@@ -158,12 +170,13 @@ def _ExtractFromVideo(video_file, video_name, marker_info_by_dict, marker_files)
                         remap_rot[2] = remap_rot[2] - 360
 
                     # Remapping end ------------------------------
-
-                    lbl_marker_pose = f"Marker Id: {aruco_dict_str + str(id)}, Pose: {np.around(marker_pos, decimals=2)} Cam rot: {np.around(marker_rot, decimals=2)}"  # Print in Deg
+                    marker_name = aruco_dict_str + "_s" + str(int(marker_size*1000)) + "_id" + str(id)
+                    lbl_marker_name = f"Marker ID: {marker_name}"
+                    lbl_marker_pose = f"Marker Pos: {np.around(marker_pos, decimals=2)} Cam rot: {np.around(marker_rot, decimals=2)}"  # Print in Deg
                     lbl_marker_rel_cam = f"Marker relative Cam: {np.around(pose_mark_rel_cam[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_mark_rel_cam[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
                     lbl_cam_rel_marker = f"Cam relative Marker: {np.around(pose_cam_rel_mark[:3,3], decimals=2)} Cam rot: {np.around(Rotation.from_matrix(pose_cam_rel_mark[:3,:3]).as_euler('XYZ', degrees=True), decimals=2)}"
                     lbl_cam_glob_pose = f"Global Cam Pos: {np.around(pos_cam_world, decimals=2)} Cam rot: {np.rad2deg(np.around(rot_cam_world, decimals=2))}"
-                    lbl_remap = f"Marker Id: {aruco_dict_str + str(id)} Remapped Cam Pos: {np.around(remap_pose[:3,3], decimals=2)} Cam rot: {remap_rot}"
+                    lbl_remap = f"Remapped Cam Pos: {np.around(remap_pose[:3,3], decimals=2)} Cam rot: {remap_rot}"
 
                     # print("New Frame (all angles in deg")
                     # print(lbl_marker_pose)
@@ -173,9 +186,13 @@ def _ExtractFromVideo(video_file, video_name, marker_info_by_dict, marker_files)
                     # print(lbl_remap)
 
                     # Display the tag ID and pose information
-                    cv2.putText(frame, lbl_marker_pose, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 5)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+                    cv2.putText(frame, lbl_marker_name, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 35)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+                    cv2.putText(frame, lbl_marker_pose, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 20)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+                    cv2.putText(frame, lbl_remap, (int(corners[i][0][0][0]), int(corners[i][0][0][1] - 5)),
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
                     # cv2.putText(frame, lbl_cam_glob_pose, (0, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
-                    cv2.putText(frame, lbl_remap, (0, 25*(idx+1)*(i+1)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
+                    # cv2.putText(frame, lbl_remap, (0, 25*(idx+1)*(i+1)), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 125, 125), 1, cv2.LINE_AA)
 
                     marker_info = (aruco_dict_str, int(id), video_name)
                     file_handler = marker_files[marker_info]
@@ -184,7 +201,8 @@ def _ExtractFromVideo(video_file, video_name, marker_info_by_dict, marker_files)
 
             # Show the frame
             cv2.imshow('Pose Estimation', frame)
-            time.sleep(0.25)
+            output_video.write(frame)
+
         #
 
         if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -192,7 +210,7 @@ def _ExtractFromVideo(video_file, video_name, marker_info_by_dict, marker_files)
 
     cap.release()
     cv2.destroyAllWindows()
-
+    output_video.release()
 
 def get_size_and_pose(dictionary, id, marker_info_by_dict):
     if dictionary in marker_info_by_dict:

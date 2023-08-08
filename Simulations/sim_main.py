@@ -14,7 +14,7 @@ if __name__ == '__main__':
     test_path = os.path.dirname(os.path.abspath(__file__))
     # test_path = "/home/stb21753492/FiducialTags/Simulations"
 
-    filename = test_path + "/Tests/Test.xlsx"
+    filename = test_path + "/Tests/z_cutoff_distance.xlsx"
 
     success_import, main_config, tests_config = import_excel.Import_Excel(filename)
 
@@ -22,7 +22,7 @@ if __name__ == '__main__':
         sys.exit()
 
     print("------------------ \n[INFO] Starting Simulations \n------------------ ")
-    simulation.RunSim(main_config, tests_config)
+    # simulation.RunSim(main_config, tests_config)
 
     print("------------------ \n [INFO] Extracting Pose from Video  \n------------------")
     extract_pose.ExtractPose(main_config, tests_config)
