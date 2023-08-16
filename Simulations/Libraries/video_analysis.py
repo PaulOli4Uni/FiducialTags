@@ -1,4 +1,3 @@
-import time
 import os
 import cv2
 import numpy as np
@@ -135,7 +134,8 @@ def _ExtractPoseFromVideo(video_file, video_name, marker_info_by_dict, marker_fi
 
         # Detect markers in the frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        parameters = cv2.aruco.DetectorParameters()
+        # parameters = cv2.aruco.DetectorParameters()  # PC
+        parameters = cv2.aruco.DetectorParameters_create()  # Laptop
         current_time = cap.get(cv2.CAP_PROP_POS_FRAMES) / cap.get(cv2.CAP_PROP_FPS)
 
         for idx, aruco_dict_str in enumerate(aruco_dicts):
@@ -296,7 +296,8 @@ def _ExtractMarkerCornersFromVideo(video_file, video_name, marker_info_by_dict, 
 
         # Detect markers in the frame
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        parameters = cv2.aruco.DetectorParameters()
+        # parameters = cv2.aruco.DetectorParameters()  # PC
+        parameters = cv2.aruco.DetectorParameters_create()  # Laptop
         current_time = cap.get(cv2.CAP_PROP_POS_FRAMES) / cap.get(cv2.CAP_PROP_FPS)
 
         for idx, aruco_dict_str in enumerate(aruco_dicts):
