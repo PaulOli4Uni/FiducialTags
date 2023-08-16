@@ -6,7 +6,7 @@ xx_file_path -> refers to the full path to the file
 """
 import sys
 import os
-from Libraries import import_excel, simulation, extract_pose
+from Libraries import import_excel, simulation, video_analysis
 
 # ------------ MAIN ------------
 if __name__ == '__main__':
@@ -22,10 +22,11 @@ if __name__ == '__main__':
         sys.exit()
 
     print("------------------ \n[INFO] Starting Simulations \n------------------ ")
-    simulation.RunSim(main_config, tests_config)
+    # simulation.RunSim(main_config, tests_config)
 
     print("------------------ \n [INFO] Extracting Pose from Video  \n------------------")
-    extract_pose.ExtractPose(main_config, tests_config)
+    video_analysis.AnalyseVideo(main_config, tests_config)
+
 
 
 
