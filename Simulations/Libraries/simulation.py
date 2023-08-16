@@ -193,8 +193,10 @@ def LoadPoseMovementFile(main_path, movement_file):
     first_line = lines[i].rstrip()
     last_number = float(first_line.split(',')[-1])
 
+    tmp_filename = tmp_movement_file_dir
+
     if last_number == 0.0:
-        tmp_filename = tmp_movement_file_dir
+
         tmp_lines = lines[i+1:]
 
         WritePoseTmpfile(main_path, tmp_filename, tmp_lines, degrees)
@@ -211,9 +213,11 @@ def LoadPoseMovementFile(main_path, movement_file):
 
         return initial_pose_cmd
     else:
-        tmp_filename = 'tmp_file.txt'
-        with open(tmp_filename, 'w') as tmp_file:
-            tmp_file.writelines(lines)
+        tmp_lines = lines[i:]
+        WritePoseTmpfile(main_path, tmp_filename, tmp_lines, degrees)
+
+        # with open(tmp_filename, 'w') as tmp_file:
+        #     tmp_file.writelines(lines)
 
         # print(f"Temporary file '{tmp_filename}' created.")
         return False
@@ -233,7 +237,7 @@ def ConvertLineRad2Deg(line):
     values[3] = str(np.rad2deg(float(values[3])))
     values[4] = str(np.rad2deg(float(values[4])))
     values[5] = str(np.rad2deg(float(values[5])))
-    return ','.join(values)
+    return ','.join(values) + '\n'
 
 def RunPoseString(test_name, model_name, pose_msg):
 
