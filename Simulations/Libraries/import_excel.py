@@ -15,7 +15,7 @@ from Simulations.Libraries.data_classes import dc_pose, dc_marker, dc_camera, dc
     dc_test_config_data
 
 headers = {'Parameter', 'Info', 'Additional_Info'}
-parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "cameras", "markers", "lights",
+parameters_config = {"movement_file", "video_file", "gz_pose_file", "vid_pose_file", "marker_corner_file", "cameras", "markers", "lights",
                      "models"}
 parameters_main = {"test_files_path", "world_file"}
 
@@ -113,6 +113,7 @@ def _ImportSheet(tests_main, tests_config, filename):
         video_file = _ReturnCellBoolValue(sheet.loc["video_file"]['Info'])
         gz_pose_file = _ReturnCellBoolValue(sheet.loc["gz_pose_file"]['Info'])
         vid_pose_file = _ReturnCellBoolValue(sheet.loc["vid_pose_file"]['Info'])
+        marker_corner_file = _ReturnCellBoolValue(sheet.loc["marker_corner_file"]['Info'])
 
         # Import Cameras, markers and lights
         cameras = []
@@ -130,7 +131,7 @@ def _ImportSheet(tests_main, tests_config, filename):
         models = []
         if not _ImportModels(models, tests_main.test_files_path, sheet, model_row_index, max_row): return False
 
-        test_data = dc_test_config_data(test_name, movement_file, video_file, gz_pose_file, vid_pose_file, cameras,
+        test_data = dc_test_config_data(test_name, movement_file, video_file, gz_pose_file, vid_pose_file, marker_corner_file, cameras,
                                         markers, lights, models)
 
         tests_config.append(test_data)

@@ -12,6 +12,7 @@ class test_config_data:
     video_file: bool
     gz_pose_file: bool
     vid_pose_file: bool
+    marker_corner_file: bool
     cameras: [dc_camera]
     markers: [dc_marker]
     lights: []  # todo: Add lights data class

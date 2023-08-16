@@ -28,27 +28,41 @@ ARUCO_DICT = {
     "DICT_APRILTAG_36h11": cv2.aruco.DICT_APRILTAG_36h11
 }
 
-def ExtractPose(main_config, tests_config):
+
+
+def AnalyseVideo(main_config, tests_config):
 
     for test_config in tests_config:
         world_name = main_config.world_file[:-4]
         test_name = test_config.test_name
 
-        if test_config.vid_pose_file == False:
-            print(f"[INFO] {test_name} vido_pose_file parameter is False")
-            continue
+        capture_pose = test_config.vid_pose_file
+        capture_marker_corner = test_config.marker_corner_file
 
-        print("[INFO] Starting test: " + test_name)
+        print(f"[INFO] Analysing Video of test: {test_name}")
+
         test_dir = os.path.join(main_config.test_files_path, "Tests", test_config.test_name)
-
         if not os.path.exists(test_dir):  # Check if test dir exists
             print("[ERR] " + test_name + " test does not exist. Skipping")
             continue
 
-        # Dictionary to store marker information
+        pose_dir = os.path.join(test_dir, "marker_pose")
+        if capture_pose:
+            if not os.path.exists(pose_dir):
+                os.mkdir(pose_dir)
+        else:
+            print(f"[INFO] For {test_name}, not capturing pose info")
+
+        marker_corner_dir = os.path.join(test_dir, "marker_corners")
+        if capture_marker_corner:
+            if not os.path.exists(os.path.join(marker_corner_dir)):
+                os.mkdir(marker_corner_dir)
+        else:
+            print(f"[INFO] For, {test_name} not capturing marker area")
+
+        # Create dictionary to store all marker info for the specific test.
         marker_info_by_dict = {}
 
-        # Extract marker information and store in the dictionary
         for marker in test_config.markers:
             dictionary = marker.dictionary
             id = marker.id
@@ -60,28 +74,36 @@ def ExtractPose(main_config, tests_config):
 
             marker_info_by_dict[dictionary].append((id, size, pose))
 
-
-
+        # -- Video file for each camera used in the test (some cameras record with more than one lens)
         for camera in test_config.cameras:
             camera_name = camera.camera_file[:-4]
 
             if test_config.video_file:
                 topic_names = camera.config.get_all_topic_names()
                 for topic_name in topic_names:
-                    video_file = f"vid_{camera_name}_{topic_name}.mp4"
+                    video_name = f"vid_{camera_name}_{topic_name}"
+                    video_file = f"{video_name}.mp4"
                     video_file_dir = os.path.join(test_dir, video_file)
 
                     if not os.path.exists(video_file_dir):
                         print("[ERR] video" + video_file_dir + " does not exist. Skipping test")
                         continue
                     else:
-                        video_name = video_file[:-4]
-                        marker_files = create_marker_files(test_config.markers, test_dir, video_name)
-                        _ExtractFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files)
 
-def _ExtractFromVideo(video_file, video_name, marker_info_by_dict, marker_files):
+                        if capture_pose:
+                            marker_files = create_marker_files(test_config.markers,
+                                                               pose_dir, video_name, "poses")
+                            _ExtractPoseFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files)
 
-    print("Extracting pose")
+                        if capture_marker_corner:
+                            marker_files = create_marker_files(test_config.markers,
+                                                               marker_corner_dir, video_name, "corners")
+                            _ExtractMarkerCornersFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files)
+
+def _ExtractPoseFromVideo(video_file, video_name, marker_info_by_dict, marker_files):
+
+    print("[INFO] Extracting pose")
+
     cap = cv2.VideoCapture(video_file)
 
     aruco_dicts = list(marker_info_by_dict.keys())
@@ -220,12 +242,12 @@ def get_size_and_pose(dictionary, id, marker_info_by_dict):
                 return size, pose
     return None, None
 
-def create_marker_files(markers, file_dir, video_name):
+def create_marker_files(markers, file_dir, video_name, data_identifier):
     marker_files = {}
     for marker in markers:
         dictionary = marker.dictionary
         marker_id = marker.id
-        file_name = f"marker_{dictionary}_{marker_id}_{video_name}_poses.txt"
+        file_name = f"marker_{dictionary}_{marker_id}_{video_name}_{data_identifier}.txt"
         file_path = os.path.join(file_dir, file_name)
 
         if os.path.exists(file_path):
@@ -240,4 +262,68 @@ def create_marker_files(markers, file_dir, video_name):
 
 def write_pose_to_file(file_handler, position, orientation, current_time):
     pose_info = f"{position[0]},{position[1]},{position[2]},{orientation[0]},{orientation[1]},{orientation[2]},{current_time}\n"
+    file_handler.write(pose_info)
+
+
+def _ExtractMarkerCornersFromVideo(video_file, video_name, marker_info_by_dict, marker_files):
+
+    print("[INFO] Extracting marker corners")
+
+    cap = cv2.VideoCapture(video_file)
+    aruco_dicts = list(marker_info_by_dict.keys())
+
+    # Define the camera matrix (replace with your own values)
+    camera_matrix = np.array([[1188.3078, 0, 638.71195], [0, 1188.66076, 355.72245], [0, 0, 1]], dtype=np.float32)
+
+    # Define the distortion coefficients (replace with your own values)
+    dist_coeffs = np.zeros((4, 1), dtype=np.float32)
+
+    width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+    height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
+    framerate = float(24)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    frame = (1280, 720)
+
+
+
+    while cap.isOpened():
+
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # Detect markers in the frame
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        parameters = cv2.aruco.DetectorParameters()
+        current_time = cap.get(cv2.CAP_PROP_POS_FRAMES) / cap.get(cv2.CAP_PROP_FPS)
+
+        for idx, aruco_dict_str in enumerate(aruco_dicts):
+
+            aruco_dict = cv2.aruco.getPredefinedDictionary(ARUCO_DICT[aruco_dict_str])
+            corners, ids, rejected = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=parameters)
+
+            if len(corners) > 0:
+                for i, id in enumerate(ids):
+
+                    marker_size, pose = get_size_and_pose(aruco_dict_str, float(id), marker_info_by_dict)
+                    marker_name = aruco_dict_str + "_s" + str(int(marker_size * 1000)) + "_id" + str(id)
+                    marker_info = (aruco_dict_str, int(id), video_name)
+                    file_handler = marker_files[marker_info]
+
+                    write_corners_to_file(file_handler, corners[0][0], current_time)
+
+            # Show the frame
+            # cv2.imshow('Marker Area', frame)
+
+
+        # if cv2.waitKey(1) & 0xFF == ord('q'):
+        #     break
+
+    # cap.release()
+    # cv2.destroyAllWindows()
+
+def write_corners_to_file(file_handler, corners, current_time):
+    pose_info = f"{corners[0]},{corners[1]},{corners[2]},{corners[3]},{current_time}\n"
     file_handler.write(pose_info)
