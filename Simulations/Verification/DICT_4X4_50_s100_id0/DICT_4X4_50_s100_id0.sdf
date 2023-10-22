@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+        <sdf version="1.5">
+        <model name="DICT_4X4_50_s100_id0">
+              <link name="Main">
+              
+              	<inertial>
+                <mass>1</mass>
+                <pose>0 0 0 0 0 0</pose>
+                <inertia>
+                    <ixx>1</ixx>
+                    <iyy>1</iyy>
+                    <izz>1</izz>
+                </inertia>
+                </inertial>
+              
+                <pose>0 0 0 0 0 -1.570796327</pose>
+                    <visual name="DICT_4X4_50_s100_id0_Visual">
+                        <pose>0 0 0.01 0 0 0</pose>
+                        <geometry>
+                            <mesh>
+                                <scale>1 1 1</scale>
+                                <uri>DICT_4X4_50_s100_id0.obj</uri>
+                            </mesh>
+                        </geometry>
+                    </visual>
+                    <gravity>1</gravity>
+                    <velocity_decay/>
+                    <self_collide>0</self_collide>
+              </link>
+          
+          <plugin
+                filename="Position_Control"
+                name="gz::sim::v7::systems::PositionController">
+                <timestep_precision>10</timestep_precision>
+                <xyz_offset> 0 0 0</xyz_offset>
+                <rpy_offset> 0 0 0</rpy_offset>
+            </plugin>
+          
+          </model></sdf>
