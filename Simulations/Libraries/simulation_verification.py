@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 from scipy.spatial.transform import Rotation
 import shutil
+import select
+import glob
 
 from Simulations.Libraries import directory_mappings
 from Simulations.Libraries.data_classes import dc_pose
@@ -14,14 +16,16 @@ dc_pose = dc_pose.pose
 # CHANGE INFO FOR EACH TEST
 
 test_name = "test1"
-marker_name = "DICT_4X4_50_s100_id0"
-camera_name = "KahnPhone_new"
+marker_name = "3Markers"
+# marker_name = "Pattern_Cropped_Gz"
+camera_name = "Canon"
 
 marker_pose = dc_pose(0,0,1,np.deg2rad(0),np.deg2rad(0),np.deg2rad(0))
-camera_pose = dc_pose(0,0,2,np.deg2rad(-180),np.deg2rad(0),np.deg2rad(-180))
+# camera_pose = dc_pose(0.007,-0.0263,2.3198,np.deg2rad(-180-2.2752),np.deg2rad(0-2.4637),np.deg2rad(-180+0.7))
+camera_pose = dc_pose(0.0+0.008,0-0.004,1+0.826+0.1198,np.deg2rad(-180),np.deg2rad(0),np.deg2rad(-180-.7))
 
-movement_file_dir = '../Verification/MovMatrix_10.csv'
-
+movement_file_dir = '../Verification/Kuka_Files/CSV_Files_for_Test/MovMatrix_10.csv'
+world_img_files_path = f"/home/paul/FiducialTags/Simulations/Worlds/{camera_name}"
 # Do Not Change
 camera_file_dir = '../Verification/Cameras/' + camera_name + '.sdf'
 marker_file_dir = os.path.join('../Verification', marker_name, (marker_name+'.sdf'))
@@ -68,21 +72,32 @@ def RunSim():
             time.sleep(0.1)
 
     # Prep Movement File (if time of first line = 0) set separate and create temp file for other commands
-    all_movement_cmds = process_csv_file(movement_file_dir, marker_pose, t=0.5)
+    all_movement_cmds = process_csv_file(movement_file_dir, marker_pose, t=.6)
     print("[INFO] Starting Movement File")
     PlaySim(world_name)
 
-    for move_cmd in all_movement_cmds:
-        print(move_cmd)
-        RunPoseString(test_name, marker_name, move_cmd)
-        WaitMovementComplete(test_name, marker_name)  # Only have to look at one camera
-        time.sleep(0.2)
-        TakeImage()
-        time.sleep(0.2)
+    #  - Break into two. First 350 images and then the next 350
+    # Calculate the midpoint index
+    midpoint = len(all_movement_cmds) // 2
+
+    # Split the list into two smaller lists
+    # half_movement_cmds = all_movement_cmds[:midpoint]
+    # half_movement_cmds = all_movement_cmds[midpoint:]
+    half_movement_cmds = all_movement_cmds[595:]
+
+    for img_num, move_cmd in enumerate(half_movement_cmds):
+        print("New Mvm command")
+        pose_str = RunPoseString(test_name, marker_name, move_cmd)
+        print("Waiting for Mvm to complete")
+        WaitMovementComplete(test_name, marker_name, pose_str)  # Only have to look at one camera
+        print("Mvmnt Complete")
+        TakeImage(world_img_files_path,img_num)
+        print("Image Taken")
+
 
     PauseSim(world_name)
     print("[INFO] Movement File Finished")
-
+    time.sleep(5)
     # Remove Markers, Cameras and Models
     print("[INFO] Removing Markers and Cameras")
 
@@ -138,49 +153,98 @@ def ConvertLineRad2Deg(line):
     return ','.join(values) + '\n'
 
 def RunPoseString(test_name, model_name, pose_msg):
-    print("New Mvm command")
-    wait_cmd = f"gz topic -e -t /model/{CombineTestandObjectName(test_name, model_name)}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
-    process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE)
 
-    movement_command_not_received = True
-    while movement_command_not_received:
-        pose_cmd = f"gz topic -t /model/{CombineTestandObjectName(test_name, model_name)}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
-        subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
+    pose_cmd = f"gz topic -t /model/{CombineTestandObjectName(test_name, model_name)}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
+    subprocess.run(pose_cmd, shell=True, capture_output=False, text=True)
+    wait_cmd = f"gz topic -e -t /model/{CombineTestandObjectName(test_name, model_name)}/pos_contr"
+    print(pose_cmd)
+    #
+    # scan_process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # poll_obj = select.poll()
+    # poll_obj.register(scan_process.stdout, select.POLLIN)
+    # pose_msg_not_sent = True
+    # while pose_msg_not_sent:
+    #     subprocess.run(pose_cmd, shell=True, capture_output=False, text=True)
+    #     poll_result = poll_obj.poll(0)
+    #     if poll_result:
+    #         line = scan_process.stdout.readline()
+    #         # print(line)
+    #         poll_obj.unregister(scan_process.stdout)
+    #         pose_msg_not_sent = False
+    # print("Pose Given Successfully")
+    return pose_cmd
 
-        output = process.stdout.readline()
-        print("This is output: " + str(output))
-        # If value received, break from while
-        if process.poll() is not None:
-            print('1')
-            break
-        if output:
-            print('2')
-            process.terminate()
-            movement_command_not_received = False
-
-
-def WaitMovementComplete(test_name, model_name):
+def WaitMovementComplete(test_name, model_name, pose_cmd):
 
     wait_cmd = f"gz topic -e -t /model/{CombineTestandObjectName(test_name, model_name)}/move_fin"
-    process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE)
 
+    scan_process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    poll_obj = select.poll()
+    poll_obj.register(scan_process.stdout, select.POLLIN)
     movement_command_not_received = True
+    start_time = time.time()
+    i = 0
     while movement_command_not_received:
-        output = process.stdout.readline()
-        # If value received, break from while
-        if process.poll() is not None:
-            break
-        if output:
-            process.terminate()
+        poll_result = poll_obj.poll(0)
+        # print(poll_result)
+        if poll_result:
+            print(poll_result)
+            line = scan_process.stdout.readline()
+            # print(line)
+            poll_obj.unregister(scan_process.stdout)
             movement_command_not_received = False
+            return True
+        elif time.time()-start_time > 4:
+            if i < 3:
+                print("POSE CMND RUN AGAIN")
+                subprocess.run(pose_cmd, shell=True, capture_output=False, text=True)
+                i = i+1
+            else:
+                # If mvmnt did not complete in 25 seconds,
+                # Its probably done and we can move on
+                print("WAIT POS SKIPPED")
+                poll_obj.unregister(scan_process.stdout)
+                movement_command_not_received = False
+                return False
+            start_time = time.time()
+            #
+
 
 def CombineTestandObjectName(test_name, object_name):
     return test_name + "_" + object_name
 
-def TakeImage():
-    image_cmd = f"gz topic -t /TakeImg -m gz.msgs.Boolean -p 'data:True'"
-    result = subprocess.run(image_cmd, shell=True, capture_output=True, text=True)
+def TakeImage(folder_path, img_num):
 
+    image_cmd = f"gz topic -t /TakeImg -m gz.msgs.Boolean -p 'data:True'"
+    wait_cmd = f"gz topic -e -t /TakeImg"
+
+    subprocess.run(image_cmd, shell=True, capture_output=False, text=True)
+    time.sleep(3)
+    start_time = time.time()
+    while count_png_files(folder_path) < img_num + 1:
+        if time.time() - start_time > 2:
+            subprocess.run(image_cmd, shell=True, capture_output=False, text=True)
+            start_time = time.time()
+
+
+    #
+    # scan_process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    # poll_obj = select.poll()
+    # poll_obj.register(scan_process.stdout, select.POLLIN)
+    # take_img_msg_not_sent = True
+    # while take_img_msg_not_sent:
+    #     subprocess.run(image_cmd, shell=True, capture_output=False, text=True)
+    #     poll_result = poll_obj.poll(0)
+    #     if poll_result:
+    #         line = scan_process.stdout.readline()
+    #         # print(line)
+    #         poll_obj.unregister(scan_process.stdout)
+    #         take_img_msg_not_sent = False
+
+def count_png_files(folder_path):
+    # Use glob to find all .png files in the given folder
+    png_files = glob.glob(f"{folder_path}/*.png")
+    return len(png_files)
 
 def process_csv_file(csv_filename, initial_pose, t=0.1):
     # Read the CSV file into a DataFrame
@@ -197,12 +261,11 @@ def process_csv_file(csv_filename, initial_pose, t=0.1):
     df['Z'] = df['Z'] / 1000.0  # Convert from mm to m
 
     # Calculate the cumulative sum for translations (x, y, z) and rotations (r, p, y)
-    # RoboDK movements relative to robot-arm flange (tool). Thus an remappig has to be done. Luckily its a direct remapping
-    # No remapping on the provided pose for marker starting position
+    # RoboDK movements relative to robot-arm flange (tool). Thus a remapping has to be done.
     # See Masters Book p118
     df['cumulative_x'] = initial_pose['X'] - df['X'].cumsum()
     df['cumulative_y'] = initial_pose['Y'] - df['Y'].cumsum()
-    df['cumulative_z'] = initial_pose['Z'] - df['Z'].cumsum()
+    df['cumulative_z'] = initial_pose['Z'] + df['Z'].cumsum()
     df['cumulative_r'] = np.rad2deg(initial_pose['r'])  - df['r'].cumsum()
     df['cumulative_p'] = np.rad2deg(initial_pose['p']) - df['p'].cumsum()
     df['cumulative_yaw'] = np.rad2deg(initial_pose['y']) + df['y'].cumsum()

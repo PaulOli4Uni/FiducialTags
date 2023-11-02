@@ -16,17 +16,23 @@ def calculate_fov(calibration_matrix, image_resolution):
     return horizontal_fov, vertical_fov
 
 
-# Example usage:
+# Example usage KhanPhone:
 calibration_matrix = np.array([[1172.64836, 0, 376.929322], [0, 1174.7356, 633.099808], [0, 0, 1]])  # Example calibration matrix
 image_resolution = (1280, 720)  # Example image resolution
+
+# Canon
+calibration_matrix = np.array([[5163.89688, 0, 2962.82638], [0, 5167.8757, 1953.23275], [0, 0, 1]])  # Example calibration matrix
+image_resolution = (6000, 4000)  # Example image resolution
+sensor_size = (24,36) #  mm Around (not direct measurement)
+
 
 # horizontal_fov, vertical_fov = calculate_fov(calibration_matrix, image_resolution)
 # print("Horizontal FOV:", horizontal_fov, "degrees")
 # print("Vertical FOV:", vertical_fov, "degrees")
 
 # Prepare
-w, h = 1280, 720
-fx, fy = 1173.43804, 1171.39498
+w, h = image_resolution[0], image_resolution[1]
+fx, fy = calibration_matrix[0,0], calibration_matrix[1,2]
 
 # Go
 fov_x = np.rad2deg(2 * np.arctan2(w, 2 * fx))
@@ -39,3 +45,9 @@ print(f"  {fov_y = :.1f}\N{DEGREE SIGN}")
 print("\n FoV for .SDF file")
 print(f" fov_x = {fov_x*np.pi/180} rad")
 print(f" fov_y = {fov_y*np.pi/180} rad")
+
+# Focal length
+focal_x = sensor_size[0]*fx/w
+print((f"Focal length x = {focal_x} mm"))
+focal_y = sensor_size[1]*fy/h
+print((f"More Accurate ->  Focal length y = {focal_y} mm"))

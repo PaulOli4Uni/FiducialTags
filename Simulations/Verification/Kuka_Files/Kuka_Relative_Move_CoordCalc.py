@@ -15,7 +15,9 @@ if not ROBOT.Valid():
 # csv_file = r'C:\Users\paulo\OneDrive - Stellenbosch University\Masters\Thesis\3.Sim\Sim Verification\MovementFiles\test1.csv'
 # csv_file = r'/home/paul/Downloads/test1.csv'
 # csv_file = r'/home/paul/Sim_Analysis/Verification/MovMatrix.csv'
-csv_file = r'/home/paul/FiducialTags/Simulations/Verification/Kuka_Files/MovMatrix_10.csv'
+# csv_file = r'/home/paul/FiducialTags/Simulations/Verification/Kuka_Files/CSV_Files_for_Test/MovMatrix_10.csv'
+# csv_file = r'/home/paul/FiducialTags/Simulations/Verification/Kuka_Files/CSV_Files_for_Test/Mov_Dynamic.csv'
+csv_file = r'/home/paul/FiducialTags/Simulations/Verification/Kuka_Files/CSV_Files_for_Test/Mov_Dynamic_many.csv'
 
 # csv_file = r'/test1.csv'
 
@@ -58,10 +60,10 @@ def move_robot_to_poses(strfile):
         target_i = RelTool(target_i, x, y, z, rx, ry, rz)
 
         # ROBOT.Pause(100000)
-        ROBOT.MoveJ(target_i)
+        # ROBOT.MoveJ(target_i)
+        ROBOT.MoveL(target_i)
 
-
-    ROBOT.MoveJ(initial_pose)
+    ROBOT.MoveL(initial_pose)
 
 # Run the script to move the robot to the poses from the CSV file
 move_robot_to_poses(csv_file)

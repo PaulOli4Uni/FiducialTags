@@ -77,7 +77,7 @@
     
     	<include>
 		<pose>0 0 1 0 0 0</pose>
-		<uri>../../Cameras/Cam_Basic_temp.sdf</uri>
+		<uri>../../Cameras/templates/Cam_Basic_temp.sdf</uri>
        	</include>
     
     

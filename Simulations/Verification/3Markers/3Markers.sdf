@@ -2,7 +2,7 @@
         <sdf version="1.5">
         <model name="3Markers">
               <link name="Main">
-                <pose>0 0 0 0 0 -1.570796327</pose>
+                <pose>0 0 0 0 0 3.1415</pose>
                     <visual name="3Markers_Visual">
                         <pose>0 0 0.01 0 0 0</pose>
                         <geometry>
@@ -16,4 +16,14 @@
                     <velocity_decay/>
                     <self_collide>0</self_collide>
               </link>
+              
+              <plugin
+                filename="Position_Control"
+                name="gz::sim::v7::systems::PositionController">
+                <timestep_precision>10</timestep_precision>
+                <xyz_offset> 0 0 0</xyz_offset>
+                <rpy_offset> 0 0 0</rpy_offset>
+            </plugin>
+      
+      
           </model></sdf>

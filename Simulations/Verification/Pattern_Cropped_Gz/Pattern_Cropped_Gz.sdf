@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+        <sdf version="1.5">
+        <model name="Pattern_Cropped_Gz">
+              <link name="Main">
+                <pose>0 0 0 0 0 0</pose>
+                    <visual name="Pattern_Cropped_Gz_Visual">
+                        <pose>0 0 0.0125 0 0 0</pose>
+                        <geometry>
+                            <mesh>
+                                <scale>1 1 1</scale>
+                                <uri>Pattern_Cropped_Gz.obj</uri>
+                            </mesh>
+                        </geometry>
+                    </visual>
+                    <gravity>1</gravity>
+                    <velocity_decay/>
+                    <self_collide>0</self_collide>
+              </link>
+              
+              <plugin
+                filename="Position_Control"
+                name="gz::sim::v7::systems::PositionController">
+                <timestep_precision>10</timestep_precision>
+                <xyz_offset> 0 0 0</xyz_offset>
+                <rpy_offset> 0 0 0</rpy_offset>
+            </plugin>
+              
+          </model></sdf>
