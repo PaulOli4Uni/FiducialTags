@@ -1,4 +1,7 @@
 from typing import List
+
+import numpy as np
+
 from Simulations.Libraries.data_classes import dc_pose, dc_camera_properties
 
 
@@ -43,6 +46,8 @@ class CameraLoader:
                             p=float(properties['pose_p']),
                             y=float(properties['pose_y']),
                         ),
+                        calibration_matrix=self._cal_matrix_str_to_np_array(properties['calibration_matrix']),
+                        distortion_coeff=self._dist_coeff_str_to_np_array(properties['distortion_coeff']),
                         horizontal_fov=float(properties['horizontal_fov']),
                         img_width=int(properties['img_width']),
                         img_height=int(properties['img_height']),
@@ -85,6 +90,13 @@ class CameraLoader:
             elif key == 'lens_type':
                 if not isinstance(value, str):
                     raise ValueError(f"Invalid data type for 'lens_type': expected str, found {type(value)}")
+            elif key == 'calibration_matrix':
+                if not isinstance(value, str):
+                    raise ValueError(f"Invalid data type for 'lens_type': expected str, found {type(value)}")
+            elif key == 'distortion_coeff':
+                if not isinstance(value, str):
+                    raise ValueError(f"Invalid data type for 'lens_type': expected str, found {type(value)}")
+
             else:
                 try:
                     float(value)  # Check if the value can be converted to float
@@ -103,3 +115,16 @@ class CameraLoader:
 
     def get_num_cameras(self) -> int:
         return len(self.camera_properties)
+
+    def _cal_matrix_str_to_np_array(self, str_mat):
+        # Split the string by comma and convert to float
+        data_list = [float(num) for num in str_mat.split(',')]
+        # Convert the list to a NumPy array
+        data_array = np.array(data_list)
+        return data_array.reshape(3, 3)
+
+    def _dist_coeff_str_to_np_array(self, str_dist_coeff):
+        data_list = [float(num) for num in str_dist_coeff.split(',')]
+        # Convert the list to a NumPy array
+        data_array = np.array(data_list)
+        return data_array

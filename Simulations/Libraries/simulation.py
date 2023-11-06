@@ -1,6 +1,7 @@
 import time
 import subprocess
 import os
+import glob
 
 import numpy as np
 from scipy.spatial.transform import Rotation
@@ -75,6 +76,7 @@ def RunSim(main_config, tests_config):
             if test_config.video_file:
                 topic_names = camera.config.get_all_topic_names()
                 for topic_name in topic_names:
+                    topic_name = f"{test_name}_{topic_name}"
                     video_file = f"vid_{camera_name}_{topic_name}.mp4"
                     StartCameraVideoRecord(topic_name, os.path.join(test_dir, video_file))
 
@@ -86,6 +88,7 @@ def RunSim(main_config, tests_config):
 
         PlaySim(world_name)
         WaitMovementComplete(test_name, test_config.cameras[0].camera_file[:-4])  # Only have to look at one camera
+        PauseSim(world_name)
         PauseSim(world_name)
         print("[INFO] Movement_file finished")
 
@@ -101,6 +104,7 @@ def RunSim(main_config, tests_config):
                 # StopCameraVideoRecord(camera_name, os.path.join(test_dir, video_file))
                 topic_names = camera.config.get_all_topic_names()
                 for topic_name in topic_names:
+                    topic_name = f"{test_name}_{topic_name}"
                     video_file = f"vid_{camera_name}_{topic_name}.mp4"
                     StopCameraVideoRecord(topic_name, os.path.join(test_dir, video_file))
 
@@ -110,10 +114,13 @@ def RunSim(main_config, tests_config):
 
             RemoveModel(world_name, test_name, camera_name)
 
+            for sdf_file in glob.glob(os.path.join(os.path.join(main_config.test_files_path, 'tmp_files'), '*.sdf')):
+                os.remove(sdf_file)  # Remove all sdf files made for new topics
+
         for model in test_config.models:
             RemoveModel(world_name, test_name, model.model_file[:-4])
         # os.remove(os.path.join(main_config.test_files_path, tmp_movement_file_dir))  # Remove tmp_movement_file
-
+        time.sleep(2) # Wait 2 seconds before starting next test.
     return True
 
 def LoadMarker(world_name, test_name, main_path, marker_dc):
@@ -125,8 +132,27 @@ def LoadCamera(world_name, test_name, main_path, camera_dc):
 
     camera_name = camera_dc.camera_file[:-4]
     path_to_camera_file = os.path.join(main_path, "Cameras", camera_dc.camera_file)
+    # Update CAMERA TOPIC to the test name + topic name
+    tmp_file_location = os.path.join(main_path, 'tmp_files', camera_name + '_tmp.sdf')
 
-    LoadModel(world_name, test_name, path_to_camera_file, camera_name, camera_dc.pose)
+    # Read .sdf file at path_to_camera_file
+    with open(path_to_camera_file, 'r') as file:
+        sdf_content = file.read()
+
+        topic_names = camera_dc.config.get_all_topic_names()
+        for topic_name in topic_names:
+            new_topic_name = f"{test_name}_{topic_name}"
+            # Search for all cases where text equals 'topic' and replace with new_topic
+            sdf_content = sdf_content.replace(f'{topic_name}', f'{new_topic_name}')
+            print(sdf_content)
+
+    # Store file with same name in the tmp_file_location directory
+    with open(tmp_file_location, 'w') as file:
+        file.write(sdf_content)
+    # time.sleep(1) # Give enough time for file to be properly created
+
+    LoadModel(world_name, test_name, tmp_file_location, camera_name, camera_dc.pose)
+    # tmp file can be deleted as soon as model has been loaded into environment
 
 def LoadModel(world_name, test_name, path_to_model_inc_extension, model_name, model_pose):
 
@@ -193,13 +219,11 @@ def LoadPoseMovementFile(main_path, movement_file):
     first_line = lines[i].rstrip()
     last_number = float(first_line.split(',')[-1])
 
-    tmp_filename = tmp_movement_file_dir
-
     if last_number == 0.0:
 
         tmp_lines = lines[i+1:]
 
-        WritePoseTmpfile(main_path, tmp_filename, tmp_lines, degrees)
+        WritePoseTmpfile(main_path, tmp_movement_file_dir, tmp_lines, degrees)
 
         # Change time of last line to 1 second before returning pose command
         initial_pose_cmd = first_line.split(',')
@@ -214,11 +238,7 @@ def LoadPoseMovementFile(main_path, movement_file):
         return initial_pose_cmd
     else:
         tmp_lines = lines[i:]
-        WritePoseTmpfile(main_path, tmp_filename, tmp_lines, degrees)
-
-        # with open(tmp_filename, 'w') as tmp_file:
-        #     tmp_file.writelines(lines)
-
+        WritePoseTmpfile(main_path, tmp_movement_file_dir, tmp_lines, degrees)
         # print(f"Temporary file '{tmp_filename}' created.")
         return False
 
@@ -242,6 +262,7 @@ def ConvertLineRad2Deg(line):
 def RunPoseString(test_name, model_name, pose_msg):
 
     pose_cmd = f"gz topic -t /model/{CombineTestandObjectName(test_name, model_name)}/pos_contr -m gz.msgs.StringMsg -p \'data:\"{pose_msg}\"\'"
+    print(pose_cmd)
     result = subprocess.run(pose_cmd, shell=True, capture_output=True, text=True)
 
 def RunPoseFile(test_name, model_name, pose_file):
@@ -268,6 +289,7 @@ def StartCameraVideoRecord(model_name, video_file):
 
     camera_rcd_start_cmd = f"gz service -s /{model_name} --timeout 2000 --reqtype gz.msgs.VideoRecord --reptype " \
                      f"gz.msgs.Boolean --req \'start:true, save_filename:\"{video_file}\"\'"
+    print(camera_rcd_start_cmd)
     result = subprocess.run(camera_rcd_start_cmd, shell=True, capture_output=True, text=True)
 
 def StopCameraVideoRecord(model_name, video_file):
@@ -278,7 +300,7 @@ def StopCameraVideoRecord(model_name, video_file):
 
 def WaitMovementComplete(test_name, model_name):
 
-    wait_cmd = f"gz topic -e -t /model/{CombineTestandObjectName(test_name, model_name)}/move_fin "
+    wait_cmd = f"gz topic -e -t /model/{CombineTestandObjectName(test_name, model_name)}/move_fin"
     process = subprocess.Popen(wait_cmd, shell=True, stdout=subprocess.PIPE)
 
     movement_command_not_received = True

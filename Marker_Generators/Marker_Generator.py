@@ -49,6 +49,7 @@ Marker Dim:
 Example of terminal message to generate a set of the first marker type
 python3 Marker_Generator.py -f "CreateObj"  -o "FileLocation" -n 10 -t "DICT_4X4_50" -s 1000
 python3 Marker_Generator.py -f "CreateObj"  -o "/home/stb21753492/FiducialTags/Simulations/Markers" -n 10 -t "DICT_4X4_50" -s 1000
+python3 Marker_Generator.py -f "CreateObj"  -o "/home/paul/FiducialTags/Simulations/Markers" -n 10 -t "DICT_4X4_50" -s 1000
 """
 
 import numpy as np
@@ -153,7 +154,8 @@ def CreatePng(marker_type, num, marker_id, size, output_dir):
         tag = np.zeros((size, size, 1), dtype="uint8")
 
         # Parameters : MarkerDictionary, ID, Size, Image, Border bits size
-        cv2.aruco.generateImageMarker(arucoDict, i, size, tag, 1)
+        # cv2.aruco.generateImageMarker(arucoDict, i, size, tag, 1) # OLD PC
+        cv2.aruco.drawMarker(arucoDict, i, size, tag, 1) # NEW PC
         filename = output_dir + "/" + marker_type + "_s" + str(size) + "_id" + str(i) + ".png"
         cv2.imwrite(filename, tag)
 

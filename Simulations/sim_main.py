@@ -14,7 +14,8 @@ if __name__ == '__main__':
     test_path = os.path.dirname(os.path.abspath(__file__))
     # test_path = "/home/stb21753492/FiducialTags/Simulations"
 
-    filename = test_path + "/Tests/Angle_Img.xlsx"
+    # filename = test_path + "/Tests/Angle_Img.xlsx"
+    filename = test_path + "/Tests/new_cam1.xlsx"
 
     success_import, main_config, tests_config = import_excel.Import_Excel(filename)
 

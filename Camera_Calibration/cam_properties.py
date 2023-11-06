@@ -17,13 +17,21 @@ def calculate_fov(calibration_matrix, image_resolution):
 
 
 # Example usage KhanPhone:
-calibration_matrix = np.array([[1172.64836, 0, 376.929322], [0, 1174.7356, 633.099808], [0, 0, 1]])  # Example calibration matrix
+calibration_matrix = np.array([[1172.64836, 0, 376.929322], [0, 1174.7356, 633.099808], [0, 0, 1]])  # Khan Phone
 image_resolution = (1280, 720)  # Example image resolution
 
-# Canon
-calibration_matrix = np.array([[5163.89688, 0, 2962.82638], [0, 5167.8757, 1953.23275], [0, 0, 1]])  # Example calibration matrix
-image_resolution = (6000, 4000)  # Example image resolution
-sensor_size = (24,36) #  mm Around (not direct measurement)
+# Canon - NORMAL (IMG)
+calibration_matrix = np.array([[5163.89688, 0, 2962.82638], [0, 5167.8757, 1953.23275], [0, 0, 1]])  # Canon Calibration
+image_resolution = (6000, 4000)
+sensor_size = (22.3,14.9) #  mm Around (not direct measurement)
+
+# Canon - VIDEO
+# calibration_matrix = np.array([[float('1.25440763e+03'), 0, float('5.94402907e+02')],
+#                               [0, float('1.25476819e+03'), float('3.87369665e+02')],
+#                               [0, 0, 1]], dtype=np.float32)
+# image_resolution = (1280, 720)
+# sensor_size = (24,36) #  mm Around (not direct measurement)
+
 
 
 # horizontal_fov, vertical_fov = calculate_fov(calibration_matrix, image_resolution)
@@ -32,7 +40,7 @@ sensor_size = (24,36) #  mm Around (not direct measurement)
 
 # Prepare
 w, h = image_resolution[0], image_resolution[1]
-fx, fy = calibration_matrix[0,0], calibration_matrix[1,2]
+fx, fy = calibration_matrix[0,0], calibration_matrix[1,1]
 
 # Go
 fov_x = np.rad2deg(2 * np.arctan2(w, 2 * fx))

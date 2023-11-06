@@ -13,10 +13,10 @@ chessboardSize = (9, 6)
 size_of_chessboard_squares_mm = 22.733
 
 # Common resolutions 1920x1080; 1280x720
-# frameSize = (1280, 720)  # Img Resolution -Kahn Phone
-frameSize = (6000, 4000)  # Img Resolution -Canon
+frameSize = (1280, 720)  # Img Resolution -Kahn Phone
+# frameSize = (6000, 4000)  # Img Resolution -Canon
 
-images = glob.glob('Canon_Sim_Small/*.png')  # Image DIR and type
+images = glob.glob('Canon_Vid_Sim/*.png')  # Image DIR and type
 
 # ----------------------------------------------------------------------
 

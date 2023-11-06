@@ -92,14 +92,14 @@ def AnalyseVideo(main_config, tests_config):
                         if capture_pose:
                             marker_files = create_marker_files(test_config.markers,
                                                                pose_dir, video_name, "poses")
-                            _ExtractPoseFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files)
+                            _ExtractPoseFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files, camera)
 
                         if capture_marker_corner:
                             marker_files = create_marker_files(test_config.markers,
                                                                marker_corner_dir, video_name, "corners")
-                            _ExtractMarkerCornersFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files)
+                            _ExtractMarkerCornersFromVideo(video_file_dir, video_name, marker_info_by_dict, marker_files, camera)
 
-def _ExtractPoseFromVideo(video_file, video_name, marker_info_by_dict, marker_files):
+def _ExtractPoseFromVideo(video_file, video_name, marker_info_by_dict, marker_files, camera):
 
     print("[INFO] Extracting pose")
 
@@ -108,21 +108,24 @@ def _ExtractPoseFromVideo(video_file, video_name, marker_info_by_dict, marker_fi
     aruco_dicts = list(marker_info_by_dict.keys())
 
     # Define the camera matrix (replace with your own values)
-    camera_matrix = np.array([[1188.3078, 0, 638.71195], [0, 1188.66076, 355.72245], [0, 0, 1]], dtype=np.float32)
-
+    # camera_matrix = np.array([[1188.3078, 0, 638.71195], [0, 1188.66076, 355.72245], [0, 0, 1]], dtype=np.float32)
+    camera_matrix = camera.calibration_matrix
     # Define the distortion coefficients (replace with your own values)
-    dist_coeffs = np.zeros((4, 1), dtype=np.float32)
+    # dist_coeffs = np.zeros((4, 1), dtype=np.float32)
+    dist_coeffs = camera.distortion_coeff
 
     width = cap.get(cv2.CAP_PROP_FRAME_WIDTH)
     height = cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
     fps = cap.get(cv2.CAP_PROP_FPS)
 
     output_video_path = video_file[:-4] + "_edit.mp4"  # Specify the desired output video path
-    framerate = float(24)
+    # framerate = float(24)
     fourcc = cv2.VideoWriter_fourcc(*'mp4v')
     frame = (1280, 720)
     # Width then height
-    output_video = cv2.VideoWriter(output_video_path, fourcc, framerate, (frame[0], frame[1]))
+    # output_video = cv2.VideoWriter(output_video_path, fourcc, framerate, (frame[0], frame[1]))
+    output_video = cv2.VideoWriter(output_video_path, fourcc, fps, (width, height))
+
 
 
     while cap.isOpened():

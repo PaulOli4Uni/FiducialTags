@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from Simulations.Libraries.data_classes import dc_pose
-
+import numpy as np
 
 CamPosition = dc_pose.pose
 
@@ -8,6 +8,8 @@ CamPosition = dc_pose.pose
 class CameraProperties:
     topic_name: str
     pose: CamPosition
+    calibration_matrix: np.array
+    distortion_coeff: np.array
     horizontal_fov: float
     img_width: int
     img_height: int

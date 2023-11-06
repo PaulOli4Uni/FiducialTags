@@ -12,7 +12,10 @@ decimal = 4   # n decimal to round print and return value
 
 def extract_aruco_pose(image_path, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img):
     # Load the image
-    image = cv2.imread(image_path)
+    if type(image_path) is str: # image location is given
+        image = cv2.imread(image_path)
+    else: # image itself is given (ex Video file is being used)
+        image = image_path
 
     # Initialize the ArUco detector
     parameters = cv2.aruco.DetectorParameters_create()
@@ -188,6 +191,51 @@ def Store_ALL_Img_Poses(main_img_dir, img_ext, dictionary, marker_lengths, camer
             print(f"ID:{target_marker_id}")
             Store_Img_Poses(img_dir, img_ext, dictionary, marker_lengths[j], camera_matrix, dist_coeffs, target_marker_id, disp_img)
 
+def ExtractPoseFromVideo(video_file, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img, pose_file):
+
+    print("[INFO] Extracting pose")
+
+    cap = cv2.VideoCapture(video_file)
+
+    framerate = cap.get(cv2.CAP_PROP_FPS)
+    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+    frame = (cap.get(cv2.CAP_PROP_FRAME_WIDTH), cap.get(cv2.CAP_PROP_FRAME_HEIGHT)) # Width then height
+    elapsed_time = 0
+
+    print(framerate)
+    with open(pose_file, 'w')as file:
+        pass # Create an empty file without header
+
+    while cap.isOpened():
+
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        pose = extract_aruco_pose(frame, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img)
+        entire_pose = np.append(pose, elapsed_time)
+        print(entire_pose)
+
+        with open(pose_file, 'a') as file:
+            file.write(" ".join(map(str, entire_pose)) + "\n")
+
+        elapsed_time = elapsed_time + 1/framerate
+
+        if cv2.waitKey(1) & 0xFF == ord('q'):
+            break
+
+    cap.release()
+    cv2.destroyAllWindows()
+
+def ExtractPoseAllVideos(video_file, dictionary, marker_lengths, camera_matrix, dist_coeffs, target_marker_ids, disp_img):
+    current_file_path = os.path.abspath(video_file)
+    current_folder_path = os.path.dirname(current_file_path)
+    for j, target_marker_id in enumerate(target_marker_ids):
+        print(f"ID:{target_marker_id}")
+        pose_file = f"{current_folder_path}/ID{j}.txt"
+        ExtractPoseFromVideo(video_file, dictionary, marker_lengths[j], camera_matrix, dist_coeffs, target_marker_id, disp_img,pose_file)
+
+
 if __name__ == "__main__":
 
     frameSize = (6000, 4000)
@@ -214,9 +262,9 @@ if __name__ == "__main__":
     # Check_All_Images(img_dir, img_ext, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img)
 
     # --Extract Pose -> Single Image
-    img_dir = '/home/paul/Sim_Analysis/Verification/Phys_Test_Images/Init_Pos_Img_OG_Names/1.JPG'
-    a = extract_aruco_pose(img_dir, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img)
-    print(a)
+    # img_dir = '/home/paul/Sim_Analysis/Verification/Phys_Test_Images/Init_Pos_Img_OG_Names/1.JPG'
+    # a = extract_aruco_pose(img_dir, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img)
+    # print(a)
     # --Extract Pose and Store -> Single folder
     # img_dir = "/home/paul/Sim_Analysis/Verification/Phys Test Images/Init_Pos_Img/"
     # img_ext = '.JPG'
@@ -266,3 +314,51 @@ if __name__ == "__main__":
 
 
 
+    """
+    =====================================================================
+    --------------------  CANON VIDEO!!!!!!!  ------------------ 
+    =====================================================================
+    """
+
+    """ REAL VALUES"""
+    # SIM CAMERA CANON Parameters
+    camera_matrix = np.array([[float('1.25440763e+03'), 0, float('5.94402907e+02')],
+                              [0, float('1.25476819e+03'), float('3.87369665e+02')],
+                              [0, 0, 1]], dtype=np.float32)
+    dist_coeffs = np.array(
+        [-0.13438104, -0.05149454, 0.00328829, -0.00665901, 0.41673851], dtype=np.float32)
+
+    marker_length = 0.1  # Change this to the actual marker size in meters
+    target_marker_id = 2  # Change this to the ID of the marker you want to detect
+    disp_img = False
+
+    # Test 1
+    # video_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test1/a_edit_fps.mp4'
+    # pose_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test1/ID0.txt'
+    # Test 2
+    # video_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test2/a_edit_fps.mp4'
+    # pose_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test2/ID2.txt'
+    # ExtractPoseFromVideo(video_file, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img, pose_file)
+
+    """ SIM VALUES """
+    # SIM CAMERA CANON Parameters
+    camera_matrix = np.array([[float('1.26178746e+03'), 0, float('6.30465475e+02')],
+                              [0, float('1.26113901e+03'), float('3.51568077e+02')],
+                              [0, 0, 1]], dtype=np.float32)
+    dist_coeffs = np.array(
+        [0.03726399, -0.22349282, 0.00055467, -0.00217931, 0.49825803], dtype=np.float32)
+
+    marker_length = 0.05
+    # Change this to the actual marker size in meters
+    target_marker_id = 0  # Change this to the ID of the marker you want to detect
+    disp_img = True
+
+    # video_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test1_sim/a_sim.mp4'
+    # pose_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test1_sim/ID0.txt'
+    # ExtractPoseFromVideo(video_file, dictionary, marker_length, camera_matrix, dist_coeffs, target_marker_id, disp_img,
+    #                      pose_file)
+
+    video_file = '/home/paul/Sim_Analysis/Verification/Dynamic_Tests/vid_Test1_sim/a_sim.mp4'
+    target_marker_ids = [0, 1, 2]
+    marker_lengths = [0.05, 0.05, 0.1]
+    ExtractPoseAllVideos(video_file, dictionary, marker_lengths, camera_matrix, dist_coeffs, target_marker_ids, disp_img)
